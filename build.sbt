@@ -6,13 +6,16 @@ version := "0.0.1-SNAPSHOT"
 
 scalaVersion := "2.11.7"
 
-resolvers += "Typesafe repository" at "http://repo.typesafe.com/typesafe/releases/"
+resolvers ++= Seq("Typesafe repository" at "http://repo.typesafe.com/typesafe/releases/",
+                  "Sonatype OSS Releases"  at "http://oss.sonatype.org/content/repositories/releases/")
 
 libraryDependencies ++= Seq(
   "com.typesafe.akka" %% "akka-actor" % "2.3.12",
   "com.typesafe.akka" %% "akka-stream-experimental" % "1.0",
   "com.typesafe.akka" %% "akka-http-experimental" % "1.0",
   "com.typesafe.play" %% "play-json" % "2.3.9",
+  "net.ceedubs" %% "ficus" % "1.1.2",
+  "commons-io" % "commons-io" % "2.4",
   "org.specs2" %% "specs2-core" % "2.4.15" % "test"
 )
 

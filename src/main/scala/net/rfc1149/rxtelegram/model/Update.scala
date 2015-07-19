@@ -1,9 +1,9 @@
 package net.rfc1149.rxtelegram.model
 
-import play.api.libs.json.{Json, Format}
+import play.api.libs.json.{Json, Reads}
 
-case class Update(update_id: Int, message: Option[Message])
+case class Update(update_id: Long, message: Option[Message])
 
 object Update {
-  implicit val updateFormat: Format[Update] = Json.format[Update]
+  implicit val updateReads: Reads[Update] = Json.reads[Update]
 }

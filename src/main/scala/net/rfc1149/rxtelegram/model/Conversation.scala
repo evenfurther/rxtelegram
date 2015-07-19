@@ -3,7 +3,7 @@ package net.rfc1149.rxtelegram.model
 import play.api.libs.json.{Format, Writes, Reads}
 
 trait Conversation {
-  val id: Int
+  val id: Long
 }
 
 object Conversation {

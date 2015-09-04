@@ -86,9 +86,6 @@ abstract class ActorBot(val token: String, val config: Config = ConfigFactory.lo
     case GetUserProfilePhotos(user, offset, limit) =>
       getUserProfilePhotos(user.id, offset, limit).pipeTo(sender())
 
-    case ForwardMessage(target, origin) =>
-      forwardMessage(target.chat_id, origin.chat.id, origin.message_id).pipeTo(sender())
-
     case other =>
       try {
         handleOther(other)
@@ -111,15 +108,8 @@ object ActorBot {
   case class Updates(updates: List[Update])
   private[ActorBot] case class UpdatesError(throwable: Throwable)
 
-
   case class SetWebhook(uri: String = "", certificate: Option[Media] = None)
 
   case class GetUserProfilePhotos(user: User, offset: Long = 0, limit: Long = 100)
-
-  case class ForwardMessage(target: Target, origin: Message)
-
-  private[ActorBot] case class MediaParameter(fieldName: String, media: Media) {
-    def toBodyPart = media.toBodyPart(fieldName)
-  }
 
 }

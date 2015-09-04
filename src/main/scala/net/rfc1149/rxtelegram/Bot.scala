@@ -35,7 +35,7 @@ trait Bot {
   private[this] def send(methodName: String, fields: Seq[(String, String)] = Seq(), media: Option[MediaParameter] = None): Future[JsObject] =
     sendInternal(methodName, buildEntity(fields, media))
 
-  def send(data: Send): Future[Message] = sendInternal(data.methodName, data.buildEntity(includeMethod = false)).toMessage
+  def send(data: Send): Future[Message] = sendInternal(data.action.methodName, data.buildEntity(includeMethod = false)).toMessage
 
   private[this] def sendInternal(methodName: String, entity: Future[MessageEntity]): Future[JsObject] = {
     entity.map { fd =>
@@ -79,12 +79,6 @@ trait Bot {
   protected[this] def acknowledgeUpdate(update: Update): Unit =
     offset = offset.max(update.update_id)
 
-
-  def forwardMessage(chat_id: Long, from_chat_id: Long, message_id: Long): Future[Message] = {
-    val fields = chat_id.toField("chat_id") ++ from_chat_id.toField("from_chat_id") ++ message_id.toField("message_id")
-    send("forwardMessage", fields).toMessage
-  }
-
   def setWebhook(uri: String, certificate: Option[Media] = None): Future[JsObject] =
     send("setWebhook", Seq("url" -> uri), certificate.map(MediaParameter("certificate", _)))
 
@@ -124,7 +118,7 @@ object Bot {
     val action = "find_location"
   }
 
-  private[Bot] case class MediaParameter(fieldName: String, media: Media) {
+  case class MediaParameter(fieldName: String, media: Media) {
     def toBodyPart = media.toBodyPart(fieldName)
   }
 
@@ -170,15 +164,14 @@ object Bot {
     def apply(message: Message): Reply = Reply(message.chat.id, message.message_id)
   }
 
-  sealed trait Send {
+  sealed trait Action {
     val methodName: String
-    val target: Target
     val replyMarkup: Option[ReplyMarkup]
 
     val fields: List[(String, String)]
     val media: Option[MediaParameter] = None
 
-    def buildEntity(includeMethod: Boolean)(implicit ec: ExecutionContext) = {
+    def buildEntity(target: Target, includeMethod: Boolean)(implicit ec: ExecutionContext) = {
       val allFields = fields ++ replyMarkup.toField("reply_markup") ++ target.toFields ++ (if (includeMethod) Seq("method" -> methodName) else Seq())
       Bot.buildEntity(allFields, media)
     }
@@ -186,56 +179,75 @@ object Bot {
     protected def namedMedia(name: String, media: Media) = Some(MediaParameter(name, media))
   }
 
-  case class SendMessage(target: Target, text: String, disable_web_page_preview: Boolean = false,
-                         replyMarkup: Option[ReplyMarkup] = None) extends Send {
+  case class Send(target: Target, action: Action) {
+    def buildEntity(includeMethod: Boolean)(implicit ec: ExecutionContext) =
+      action.buildEntity(target, includeMethod)
+  }
+
+  case class ActionForwardMessage(message: Reply) extends Action {
+    val methodName = "forwardMessage"
+    val replyMarkup = None
+    val fields = message.chat_id.toField("from_chat_id") ++ message.message_id.toField("message_id")
+  }
+
+  object ActionForwardMessage {
+    def apply(message: Message): ActionForwardMessage = ActionForwardMessage(Reply(message))
+  }
+
+  case class ActionMessage(text: String, disable_web_page_preview: Boolean = false,
+                           replyMarkup: Option[ReplyMarkup] = None) extends Action {
     val methodName = "sendMessage"
     val fields = text.toField("text") ++ disable_web_page_preview.toField("disable_web_page_preview", false)
   }
 
-  case class SendPhoto(target: Target, photo: Media, caption: Option[String] = None, replyMarkup: Option[ReplyMarkup] = None) extends Send {
+  case class ActionPhoto(photo: Media, caption: Option[String] = None, replyMarkup: Option[ReplyMarkup] = None) extends Action {
     val methodName = "sendPhoto"
     val fields = caption.toField("caption")
     override val media = namedMedia("photo", photo)
   }
 
-  case class SendAudio(target: Target, audio: Media, duration: Option[FiniteDuration] = None,
-                       performer: Option[String], title: Option[String], replyMarkup: Option[ReplyMarkup] = None) extends Send {
+  case class ActionAudio(audio: Media, duration: Option[FiniteDuration] = None,
+                         performer: Option[String], title: Option[String], replyMarkup: Option[ReplyMarkup] = None) extends Action {
     val methodName = "sendAudio"
     val fields = duration.toField("duration") ++ performer.toField("performer") ++ title.toField("title")
     override val media = namedMedia("audio", audio)
   }
 
-  case class SendVoice(target: Target, voice: Media, duration: Option[FiniteDuration] = None, replyMarkup: Option[ReplyMarkup] = None) extends Send {
+  case class ActionVoice(voice: Media, duration: Option[FiniteDuration] = None, replyMarkup: Option[ReplyMarkup] = None) extends Action {
     val methodName = "sendVoice"
     val fields = duration.toField("duration")
     override val media = namedMedia("voice", voice)
   }
 
-  case class SendDocument(target: Target, document: Media, replyMarkup: Option[ReplyMarkup] = None) extends Send {
+  case class ActionDocument(document: Media, replyMarkup: Option[ReplyMarkup] = None) extends Action {
     val methodName = "sendDocument"
     val fields = Nil
     override val media = namedMedia("document", document)
   }
 
-  case class SendSticker(target: Target, sticker: Media, replyMarkup: Option[ReplyMarkup] = None) extends Send {
+  case class ActionSticker(sticker: Media, replyMarkup: Option[ReplyMarkup] = None) extends Action {
     val methodName = "sendSticker"
     val fields = Nil
     override val media = namedMedia("sticker", sticker)
   }
 
-  case class SendVideo(target: Target, video: Media, duration: Option[FiniteDuration] = None,
-                       caption: Option[String], replyMarkup: Option[ReplyMarkup] = None) extends Send {
+  case class ActionVideo(video: Media, duration: Option[FiniteDuration] = None,
+                         caption: Option[String], replyMarkup: Option[ReplyMarkup] = None) extends Action {
     val methodName = "sendVideo"
     val fields = duration.map(_.toSeconds).toField("duration") ++ caption.toField("caption")
     override val media = namedMedia("video", video)
   }
 
-  case class SendLocation(target: Target, location: (Double, Double), replyMarkup: Option[ReplyMarkup] = None) extends Send {
+  case class ActionLocation(location: (Double, Double), replyMarkup: Option[ReplyMarkup] = None) extends Action {
     val methodName = "sendLocation"
     val fields = location._1.toField("latitude") ++ location._2.toField("longitude")
   }
 
-  case class SendChatAction(target: Target, action: ChatAction) extends Send {
+  object ActionLocation {
+    def apply(location: Location): ActionLocation = ActionLocation((location.latitude, location.longitude))
+  }
+
+  case class ActionChatAction(action: ChatAction) extends Action {
     val methodName = "sendChatAction"
     val replyMarkup = None
     val fields = action.action.toField("action")

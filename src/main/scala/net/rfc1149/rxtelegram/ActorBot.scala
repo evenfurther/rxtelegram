@@ -2,6 +2,7 @@ package net.rfc1149.rxtelegram
 
 import akka.actor.Status.Failure
 import akka.actor.{Actor, ActorLogging, ActorSystem, Stash}
+import akka.http.scaladsl.model.ResponseEntity
 import akka.pattern.pipe
 import akka.stream.{ActorMaterializer, Materializer}
 import com.typesafe.config.{Config, ConfigFactory}
@@ -86,6 +87,9 @@ abstract class ActorBot(val token: String, val config: Config = ConfigFactory.lo
     case GetUserProfilePhotos(user, offset, limit) =>
       getUserProfilePhotos(user.id, offset, limit).pipeTo(sender())
 
+    case GetFile(file_id) =>
+      getFile(file_id).pipeTo(sender())
+
     case other =>
       try {
         handleOther(other)
@@ -111,5 +115,8 @@ object ActorBot {
   case class SetWebhook(uri: String = "", certificate: Option[Media] = None)
 
   case class GetUserProfilePhotos(user: User, offset: Long = 0, limit: Long = 100)
+
+  // Answer: (File, Option[ResponseEntity])
+  case class GetFile(file_id: String)
 
 }

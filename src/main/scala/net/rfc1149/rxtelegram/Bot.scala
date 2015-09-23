@@ -37,19 +37,20 @@ trait Bot {
 
   def send(data: Send): Future[Message] = sendInternal(data.action.methodName, data.buildEntity(includeMethod = false)).toMessage
 
-  private[this] def sendInternal(methodName: String, entity: Future[MessageEntity]): Future[JsObject] = {
-    entity.map { fd =>
-      HttpRequest()
-        .withUri(s"https://api.telegram.org/bot$token/$methodName")
-        .withHeaders(List(`Accept`(MediaTypes.`application/json`)))
-        .withMethod(HttpMethods.POST)
-        .withEntity(fd)
-    }.flatMap { request =>
-      val freshPool: Flow[(HttpRequest, Any), (Try[HttpResponse], Any), HostConnectionPool] = Http().newHostConnectionPoolTls("api.telegram.org", 443)
-      Source.single((request, None)).via(freshPool).runFold[HttpResponse](null) {
+  private[this] def sendRaw(request: HttpRequest): Future[HttpResponse] = {
+    val freshPool: Flow[(HttpRequest, Any), (Try[HttpResponse], Any), HostConnectionPool] = Http().newHostConnectionPoolTls("api.telegram.org", 443)
+    Source.single((request, None)).via(freshPool).runFold[HttpResponse](null) {
         case (_, (r, _)) => r.get
       }
-    }.flatMap { response =>
+  }
+
+  private[this] def sendInternal(methodName: String, entity: Future[MessageEntity]): Future[JsObject] = {
+    entity.map { fd =>
+      HttpRequest(method = HttpMethods.POST,
+        uri = s"https://api.telegram.org/bot$token/$methodName",
+        headers = List(`Accept`(MediaTypes.`application/json`)),
+        entity = fd)
+    }.flatMap(sendRaw).flatMap { response =>
       response.status match {
         case status if status.isFailure() => throw HTTPException(status.toString())
         case status =>
@@ -75,6 +76,18 @@ trait Bot {
   def getUserProfilePhotos(user_id: Long, offset: Long = 0, limit: Long = 100): Future[UserProfilePhotos] =
     send("getUserProfilePhotos", user_id.toField("user_id") ++ offset.toField("offset", 0) ++ limit.toField("limit", 100))
       .map { json => (json \ "result").as[UserProfilePhotos] }
+
+  def getFile(file_id: String): Future[(File, Option[ResponseEntity])] = {
+    send("getFile", file_id.toField("file_id")).map { json => (json \ "result").as[File] }.flatMap { file =>
+      file.file_path match {
+        case Some(path) =>
+          sendRaw(HttpRequest(method = HttpMethods.GET, uri = s"https://api.telegram.org/file/bot$token/$path",
+            headers = List(`Accept`(MediaRanges.`*/*`)))).map(response => (file, Some(response.entity)))
+        case None =>
+          Future.successful((file, None))
+      }
+    }
+  }
 
   protected[this] def acknowledgeUpdate(update: Update): Unit =
     offset = offset.max(update.update_id)

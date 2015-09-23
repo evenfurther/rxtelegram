@@ -194,10 +194,11 @@ object Bot {
     def apply(message: Message): ActionForwardMessage = ActionForwardMessage(Reply(message))
   }
 
-  case class ActionMessage(text: String, disable_web_page_preview: Boolean = false,
+  case class ActionMessage(text: String, disable_web_page_preview: Boolean = false, parse_mode: ParseMode = ParseModeDefault,
                            replyMarkup: Option[ReplyMarkup] = None) extends Action {
     val methodName = "sendMessage"
-    val fields = text.toField("text") ++ disable_web_page_preview.toField("disable_web_page_preview", false)
+    val fields = text.toField("text") ++ disable_web_page_preview.toField("disable_web_page_preview", false) ++
+      parse_mode.option.toField("parse_mode")
   }
 
   case class ActionPhoto(photo: Media, caption: Option[String] = None, replyMarkup: Option[ReplyMarkup] = None) extends Action {
@@ -251,6 +252,18 @@ object Bot {
     val methodName = "sendChatAction"
     val replyMarkup = None
     val fields = action.action.toField("action")
+  }
+
+  sealed trait ParseMode {
+    val option: Option[String]
+  }
+
+  object ParseModeDefault extends ParseMode {
+    val option = None
+  }
+
+  object ParseModeMarkdown extends ParseMode {
+    val option = Some("Markdown")
   }
 
   def buildEntity(fields: Seq[(String, String)], media: Option[MediaParameter])(implicit ec: ExecutionContext): Future[MessageEntity] = {

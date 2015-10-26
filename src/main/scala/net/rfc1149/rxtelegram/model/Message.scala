@@ -3,7 +3,7 @@ package net.rfc1149.rxtelegram.model
 import play.api.libs.functional.syntax._
 import play.api.libs.json.{JsPath, Reads}
 
-case class Message(message_id: Long, from: User, date: Long, chat: Conversation,
+case class Message(message_id: Long, from: User, date: Long, chat: Chat,
                   forward_from: Option[User], forward_date: Option[Long],
                   reply_to_message: Option[Message], text: Option[String],
                   audio: Option[Audio], voice: Option[Voice], document: Option[Document],
@@ -19,11 +19,11 @@ object Message {
   // The reads predefined methods work up to 22 fields, and we have more than that. This is why
   // we need to have this ugly deconstruction of the JSON object.
 
-  private lazy val messageReadA: Reads[(Long, User, Long, Conversation, Option[User], Option[Long])] =
+  private lazy val messageReadA: Reads[(Long, User, Long, Chat, Option[User], Option[Long])] =
     ((JsPath \ "message_id").read[Long] and
     (JsPath \ "from").read[User] and
     (JsPath \ "date").read[Long] and
-    (JsPath \ "chat").read[Conversation] and
+    (JsPath \ "chat").read[Chat] and
     (JsPath \ "forward_from").readNullable[User] and
     (JsPath \ "forward_date").readNullable[Long]).tupled
   private lazy val messageReadB: Reads[(Option[Message], Option[String], Option[Audio], Option[Voice], Option[Document], Option[Array[PhotoSize]])] =
@@ -47,7 +47,7 @@ object Message {
       (JsPath \ "delete_chat_photo").readNullable[Boolean] and
       (JsPath \ "group_chat_created").readNullable[Boolean]).tupled
 
-  private def createFromParts(a:(Long, User, Long, Conversation, Option[User], Option[Long]),
+  private def createFromParts(a:(Long, User, Long, Chat, Option[User], Option[Long]),
             b: (Option[Message], Option[String], Option[Audio], Option[Voice], Option[Document], Option[Array[PhotoSize]]),
             c: (Option[Sticker], Option[Video], Option[String], Option[Contact], Option[Location]),
             d: (Option[User], Option[User], Option[String], Option[Array[PhotoSize]], Option[Boolean], Option[Boolean])): Message = {

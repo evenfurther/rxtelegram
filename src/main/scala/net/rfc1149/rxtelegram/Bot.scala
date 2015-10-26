@@ -157,24 +157,26 @@ object Bot {
   }
 
   sealed trait Target {
-    val chat_id: Long
+    val chat_id: String
     val message_id: Option[Long] = None
     def toFields: List[(String, String)] = chat_id.toField("chat_id") ++ message_id.toField("in_reply_to_message_id")
   }
 
-  case class To(chat_id: Long) extends Target
+  case class To(chat_id: String) extends Target
 
   object To {
+    def apply(chat_id: Long): To = To(chat_id.toString)
     def apply(message: Message): To = To(message.chat.id)
+    def apply(chat: Chat): To = To(chat.id)
     def apply(user: User): To = To(user.id)
   }
 
-  case class Reply(chat_id: Long, mid: Long) extends Target {
+  case class Reply(chat_id: String, mid: Long) extends Target {
     override val message_id = Some(mid)
   }
 
   object Reply {
-    def apply(message: Message): Reply = Reply(message.chat.id, message.message_id)
+    def apply(message: Message): Reply = Reply(message.chat.id.toString, message.message_id)
   }
 
   sealed trait Action {

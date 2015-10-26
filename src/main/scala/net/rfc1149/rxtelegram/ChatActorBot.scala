@@ -7,7 +7,7 @@ import net.rfc1149.rxtelegram.model._
 trait ChatActorBot extends Actor with ActorLogging {
 
   protected[this] var me: User = _
-  protected[this] var chat: Conversation = null
+  protected[this] var chat: Chat = null
   protected[this] var target: To = _
 
   def ready_to_send(): Unit = {}

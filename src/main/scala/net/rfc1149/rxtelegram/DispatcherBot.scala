@@ -1,13 +1,13 @@
 package net.rfc1149.rxtelegram
 
-import akka.actor.{Props, ActorContext, ActorRef}
-import net.rfc1149.rxtelegram.model.{Conversation, Message}
+import akka.actor.{ActorContext, ActorRef, Props}
+import net.rfc1149.rxtelegram.model.{Chat, Message}
 
 abstract class DispatcherBot(token: String) extends ActorBot(token) with ChatDispatcher {
 
   import DispatcherBot._
 
-  def createActor(chat: Conversation, message: Message, context: ActorContext): Option[ActorRef]
+  def createActor(chat: Chat, message: Message, context: ActorContext): Option[ActorRef]
 
   override def handleMessage(message: Message): Unit = {
     val chat = message.chat

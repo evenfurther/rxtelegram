@@ -1,6 +1,6 @@
 package net.rfc1149.rxtelegram.model
 
-import play.api.libs.json.{Reads, Json, Format}
+import play.api.libs.json.{Json, Reads}
 
 case class User(id: Long, first_name: String, last_name: Option[String], username: Option[String]) extends Equals {
 
@@ -10,5 +10,5 @@ case class User(id: Long, first_name: String, last_name: Option[String], usernam
 }
 
 object User {
-  implicit val userFormat: Format[User] = Json.format[User]
+  implicit val userReads: Reads[User] = Json.format[User]
 }

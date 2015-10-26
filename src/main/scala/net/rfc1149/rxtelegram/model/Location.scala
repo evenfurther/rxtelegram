@@ -1,9 +1,9 @@
 package net.rfc1149.rxtelegram.model
 
-import play.api.libs.json.{Json, Format}
+import play.api.libs.json.{Json, Reads}
 
 case class Location(latitude: Double, longitude: Double)
 
 object Location {
-  implicit val locationFormat: Format[Location] = Json.format[Location]
+  implicit val locationReads: Reads[Location] = Json.reads[Location]
 }

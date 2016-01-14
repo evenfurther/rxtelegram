@@ -12,7 +12,9 @@ case class Message(message_id: Long, from: User, date: Long, chat: Chat,
                   contact: Option[Contact], location: Option[Location],
                   new_chat_participant: Option[User], left_chat_participant: Option[User],
                   new_chat_title: Option[String], new_chat_photo: Option[Array[PhotoSize]],
-                  delete_chat_photo: Option[Boolean], group_chat_created: Option[Boolean])
+                  delete_chat_photo: Option[Boolean], group_chat_created: Option[Boolean],
+                  supergroup_chat_created: Option[Boolean], channel_chat_created: Option[Boolean],
+                  migrate_to_chat_id: Option[Long], migrate_from_chat_id: Option[Long])
 
 object Message {
 
@@ -46,21 +48,29 @@ object Message {
       (JsPath \ "new_chat_photo").readNullable[Array[PhotoSize]] and
       (JsPath \ "delete_chat_photo").readNullable[Boolean] and
       (JsPath \ "group_chat_created").readNullable[Boolean]).tupled
+  private lazy val messageReadE: Reads[(Option[Boolean], Option[Boolean], Option[Long], Option[Long])] =
+    ((JsPath \ "supergroup_chat_created").readNullable[Boolean] and
+      (JsPath \ "channel_chat_created").readNullable[Boolean] and
+      (JsPath \ "migrate_to_chat_id").readNullable[Long] and
+      (JsPath \ "migrate_from_chat_id").readNullable[Long]).tupled
 
   private def createFromParts(a:(Long, User, Long, Chat, Option[User], Option[Long]),
             b: (Option[Message], Option[String], Option[Audio], Option[Voice], Option[Document], Option[Array[PhotoSize]]),
             c: (Option[Sticker], Option[Video], Option[String], Option[Contact], Option[Location]),
-            d: (Option[User], Option[User], Option[String], Option[Array[PhotoSize]], Option[Boolean], Option[Boolean])): Message = {
+            d: (Option[User], Option[User], Option[String], Option[Array[PhotoSize]], Option[Boolean], Option[Boolean]),
+            e: (Option[Boolean], Option[Boolean], Option[Long], Option[Long])): Message = {
     val (message_id, from, date, chat, forward_from, forward_date) = a
     val (reply_to_message, text, audio, voice, document, photo) = b
     val (sticker, video, caption, contact, location) = c
     val (new_chat_participant, left_chat_participant, new_chat_title, new_chat_photo, delete_chat_photo, group_chat_created) = d
+    val (supergroup_chat_created, channel_chat_created, migrate_to_chat_id, migrate_from_chat_id) = e
     Message(message_id, from, date, chat, forward_from, forward_date,
       reply_to_message, text, audio, voice, document, photo,
       sticker, video, caption, contact, location,
-      new_chat_participant, left_chat_participant, new_chat_title, new_chat_photo, delete_chat_photo, group_chat_created)
+      new_chat_participant, left_chat_participant, new_chat_title, new_chat_photo, delete_chat_photo, group_chat_created,
+      supergroup_chat_created, channel_chat_created, migrate_to_chat_id, migrate_from_chat_id)
   }
 
   implicit lazy val messageReads: Reads[Message] =
-    (messageReadA and messageReadB and messageReadC and messageReadD)(createFromParts _)
+    (messageReadA and messageReadB and messageReadC and messageReadD and messageReadE)(createFromParts _)
 }

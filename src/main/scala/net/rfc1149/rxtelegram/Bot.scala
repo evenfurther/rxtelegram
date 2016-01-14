@@ -14,7 +14,7 @@ import akka.stream.scaladsl.{Flow, Source}
 import net.rfc1149.rxtelegram.model._
 import net.rfc1149.rxtelegram.model.media.Media
 import net.rfc1149.rxtelegram.utils._
-import play.api.libs.json.{JsObject, Json, Reads}
+import play.api.libs.json._
 
 import scala.concurrent.duration._
 import scala.concurrent.{ExecutionContext, Future}
@@ -32,10 +32,14 @@ trait Bot {
 
   private[this] var offset: Long = -1
 
-  private[this] def send(methodName: String, fields: Seq[(String, String)] = Seq(), media: Option[MediaParameter] = None): Future[JsObject] =
+  private[this] def send(methodName: String, fields: Seq[(String, String)] = Seq(), media: Option[MediaParameter] = None): Future[JsValue] =
     sendInternal(methodName, buildEntity(fields, media))
 
-  def send(data: Send): Future[Message] = sendInternal(data.action.methodName, data.buildEntity(includeMethod = false)).toMessage
+  def sendToMessage(data: Command): Future[Message] = send(data).map(_.as[Message])
+
+  def send(data: Command): Future[JsValue] = {
+    sendInternal(data.methodName, data.buildEntity(includeMethod = false)).map(checkResult)
+  }
 
   private[this] def sendRaw(request: HttpRequest): Future[HttpResponse] = {
     val freshPool: Flow[(HttpRequest, Any), (Try[HttpResponse], Any), HostConnectionPool] = Http().newHostConnectionPoolTls("api.telegram.org", 443)
@@ -44,7 +48,7 @@ trait Bot {
       }
   }
 
-  private[this] def sendInternal(methodName: String, entity: Future[MessageEntity]): Future[JsObject] = {
+  private[this] def sendInternal(methodName: String, entity: Future[MessageEntity]): Future[JsValue] = {
     entity.map { fd =>
       HttpRequest(method = HttpMethods.POST,
         uri = s"https://api.telegram.org/bot$token/$methodName",
@@ -55,7 +59,7 @@ trait Bot {
         case status if status.isFailure() => throw HTTPException(status.toString())
         case status =>
           try {
-            Unmarshal(response.entity).to[JsObject]
+            Unmarshal(response.entity).to[JsValue]
           } catch {
             case t: Throwable =>
               throw JSONException(t)
@@ -92,7 +96,7 @@ trait Bot {
   protected[this] def acknowledgeUpdate(update: Update): Unit =
     offset = offset.max(update.update_id)
 
-  def setWebhook(uri: String, certificate: Option[Media] = None): Future[JsObject] =
+  def setWebhook(uri: String, certificate: Option[Media] = None): Future[JsValue] =
     send("setWebhook", Seq("url" -> uri), certificate.map(MediaParameter("certificate", _)))
 
 }
@@ -135,14 +139,11 @@ object Bot {
     def toBodyPart = media.toBodyPart(fieldName)
   }
 
-  private[Bot] implicit class ToMessage(json: Future[JsObject]) {
-    def toMessage(implicit ec: ExecutionContext): Future[Message] = json.map { js =>
-      if ((js \ "ok").as[Boolean])
-        (js \ "result").as[Message]
-      else
-        throw APIException((js \ "description").as[String])
-    }
-  }
+  def checkResult(js: JsValue): JsValue =
+    if ((js \ "ok").as[Boolean])
+      (js \ "result").as[JsValue]
+    else
+      throw APIException((js \ "description").as[String])
 
   sealed trait TelegramException extends Exception
 
@@ -179,7 +180,12 @@ object Bot {
     def apply(message: Message): Reply = Reply(message.chat.id.toString, message.message_id)
   }
 
-  sealed trait Action {
+  sealed trait Command {
+    def buildEntity(includeMethod: Boolean)(implicit ec: ExecutionContext): Future[MessageEntity]
+    val methodName: String
+  }
+
+  sealed trait Action extends Command {
     val methodName: String
     val replyMarkup: Option[ReplyMarkup]
 
@@ -191,12 +197,19 @@ object Bot {
       Bot.buildEntity(allFields, media)
     }
 
+    override def buildEntity(includeMethod: Boolean)(implicit ec: ExecutionContext) = {
+      val allFields = fields ++ replyMarkup.toField("reply_markup") ++ (if (includeMethod) Seq("method" -> methodName) else Seq())
+      Bot.buildEntity(allFields, media)
+    }
+
     protected def namedMedia(name: String, media: Media) = Some(MediaParameter(name, media))
   }
 
-  case class Send(target: Target, action: Action) {
-    def buildEntity(includeMethod: Boolean)(implicit ec: ExecutionContext) =
+  case class Targetted(target: Target, action: Action) extends Command {
+    override def buildEntity(includeMethod: Boolean)(implicit ec: ExecutionContext) =
       action.buildEntity(target, includeMethod)
+
+    val methodName = action.methodName
   }
 
   case class ActionForwardMessage(message: Reply) extends Action {
@@ -269,8 +282,21 @@ object Bot {
     val fields = action.action.toField("action")
   }
 
+  case class ActionAnswerInlineQuery(inlineQueryId: String, results: Seq[InlineQueryResult],
+    cacheTime: Long = 300, isPersonal: Boolean = false, nextOffset: Option[String] = None) extends Action {
+    val methodName = "answerInlineQuery"
+    val replyMarkup = None
+    val fields = inlineQueryId.toField("inline_query_id") ++
+      Json.stringify(Json.toJson(results)).toField("results") ++
+      cacheTime.toField("cache_time") ++ isPersonal.toField("is_personal", false) ++ nextOffset.toField("next_offset")
+  }
+
   sealed trait ParseMode {
     val option: Option[String]
+  }
+
+  object ParseMode {
+    implicit val parseModeWrites: Writes[ParseMode] = Writes { pm => Json.toJson(pm.option) }
   }
 
   object ParseModeDefault extends ParseMode {

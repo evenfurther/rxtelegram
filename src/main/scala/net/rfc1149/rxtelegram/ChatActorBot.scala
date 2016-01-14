@@ -45,7 +45,7 @@ trait ChatActorBot extends Actor with ActorLogging {
           log.error(t, s"handling message $message")
       }
     case action: Action =>
-      context.parent.forward(Send(target, action))
+      context.parent.forward(Targetted(target, action))
     case other =>
       try {
         handleOther(other)

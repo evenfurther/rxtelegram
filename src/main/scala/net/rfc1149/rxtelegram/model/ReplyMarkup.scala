@@ -1,6 +1,6 @@
 package net.rfc1149.rxtelegram.model
 
-import play.api.libs.json.{Reads, Writes}
+import play.api.libs.json.Writes
 
 trait ReplyMarkup
 

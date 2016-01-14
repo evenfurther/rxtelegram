@@ -1,9 +1,9 @@
 package net.rfc1149.rxtelegram.model.media
 
 import java.io.InputStream
-import org.apache.commons.io.IOUtils
 
 import akka.http.scaladsl.model.MediaType
+import org.apache.commons.io.IOUtils
 
 case class MediaInputStream(mediaType: MediaType, inputStream: InputStream, fileName: Option[String] = None) extends Media {
 

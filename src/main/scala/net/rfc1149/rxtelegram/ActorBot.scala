@@ -2,12 +2,11 @@ package net.rfc1149.rxtelegram
 
 import akka.actor.Status.Failure
 import akka.actor.{Actor, ActorLogging, ActorSystem, Stash}
-import akka.http.scaladsl.model.ResponseEntity
 import akka.pattern.pipe
 import akka.stream.{ActorMaterializer, Materializer}
 import com.typesafe.config.{Config, ConfigFactory}
 import net.ceedubs.ficus.Ficus._
-import net.rfc1149.rxtelegram.Bot.{Send, Target}
+import net.rfc1149.rxtelegram.Bot.{ActionAnswerInlineQuery, Command}
 import net.rfc1149.rxtelegram.model._
 import net.rfc1149.rxtelegram.model.media.Media
 
@@ -28,6 +27,10 @@ abstract class ActorBot(val token: String, val config: Config = ConfigFactory.lo
   protected[this] var me: User = _
 
   protected[this] def handleMessage(message: Message): Unit
+
+  protected[this] def handleInlineQuery(inlineQuery: InlineQuery): Unit = sys.error("unhandled inline query")
+
+  protected[this] def handleChosenInlineResult(chosenInlineResult: ChosenInlineResult): Unit = sys.error("unhandled chosen inline result")
 
   protected[this] def handleOther(other: Any): Unit = {
     log.info(s"received unknown content: $other")
@@ -55,18 +58,27 @@ abstract class ActorBot(val token: String, val config: Config = ConfigFactory.lo
       stash()
   }
 
+  private def tryHandle[T](kind: String, objOpt: Option[T], handle: T => Unit) = {
+    objOpt.foreach { obj =>
+      try {
+        handle(obj)
+      } catch {
+        case t: Throwable =>
+          log.error(t, s"exception when handling $kind $obj")
+      }
+    }
+  }
+
   def receiveIKnowMe: Receive = {
     case GetMe =>
       sender ! me
 
     case Updates(updates) =>
       for (update <- updates) {
-        try {
-          update.message.foreach(handleMessage)
-        } catch {
-          case t: Throwable =>
-            log.error(t, s"exception when handling ${update.message.get}")
-        }
+        log.info(s"Handline $update")
+        tryHandle("message", update.message, handleMessage)
+        tryHandle("inline query", update.inline_query, handleInlineQuery)
+        tryHandle("chosen inline result", update.chosen_inline_result, handleChosenInlineResult)
         acknowledgeUpdate(update)
       }
       self ! Replenish
@@ -78,8 +90,11 @@ abstract class ActorBot(val token: String, val config: Config = ConfigFactory.lo
     case Replenish =>
       replenish()
 
-    case data: Send =>
+    case data: ActionAnswerInlineQuery =>
       send(data) pipeTo sender()
+
+    case data: Command =>
+      sendToMessage(data) pipeTo sender()
 
     case SetWebhook(uri, certificate) =>
       setWebhook(uri, certificate).pipeTo(sender())

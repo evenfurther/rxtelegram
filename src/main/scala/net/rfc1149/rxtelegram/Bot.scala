@@ -307,6 +307,10 @@ object Bot {
     val option = Some("Markdown")
   }
 
+  object ParseModeHTML extends ParseMode {
+    val option = Some("HTML")
+  }
+
   def buildEntity(fields: Seq[(String, String)], media: Option[MediaParameter])(implicit ec: ExecutionContext): Future[MessageEntity] = {
     if (media.isDefined) {
       val data = fields.map { case (k, v) => BodyPart(k, HttpEntity(v)) }

@@ -1,4 +1,4 @@
-name := "extelegram"
+name := "rxtelegram"
 
 organization := "net.rfc1149"
 

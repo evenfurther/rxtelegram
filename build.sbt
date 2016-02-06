@@ -10,9 +10,9 @@ resolvers ++= Seq("Typesafe repository" at "http://repo.typesafe.com/typesafe/re
                   "Sonatype OSS Releases"  at "http://oss.sonatype.org/content/repositories/releases/")
 
 libraryDependencies ++= Seq(
-  "com.typesafe.akka" %% "akka-actor" % "2.4.1",
-  "com.typesafe.akka" %% "akka-stream-experimental" % "2.0.3",
-  "com.typesafe.akka" %% "akka-http-experimental" % "2.0.3",
+  "com.typesafe.akka" %% "akka-actor" % "2.4.2-RC2",
+  "com.typesafe.akka" %% "akka-stream" % "2.4.2-RC2",
+  "com.typesafe.akka" %% "akka-http-core" % "2.4.2-RC2",
   "com.typesafe.play" %% "play-json" % "2.4.6",
   "net.ceedubs" %% "ficus" % "1.1.2",
   "commons-io" % "commons-io" % "2.4",

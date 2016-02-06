@@ -42,7 +42,7 @@ trait Bot {
   }
 
   private[this] def sendRaw(request: HttpRequest): Future[HttpResponse] = {
-    val freshPool: Flow[(HttpRequest, Any), (Try[HttpResponse], Any), HostConnectionPool] = Http().newHostConnectionPoolTls("api.telegram.org", 443)
+    val freshPool: Flow[(HttpRequest, Any), (Try[HttpResponse], Any), HostConnectionPool] = Http().newHostConnectionPoolHttps("api.telegram.org", 443)
     Source.single((request, None)).via(freshPool).runFold[HttpResponse](null) {
         case (_, (r, _)) => r.get
       }

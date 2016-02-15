@@ -7,17 +7,18 @@ version := "0.0.1-SNAPSHOT"
 scalaVersion := "2.11.7"
 
 resolvers ++= Seq("Typesafe repository" at "http://repo.typesafe.com/typesafe/releases/",
-                  "Sonatype OSS Releases"  at "http://oss.sonatype.org/content/repositories/releases/")
+                  "Sonatype OSS Releases"  at "http://oss.sonatype.org/content/repositories/releases/",
+                  Resolver.jcenterRepo)
 
 libraryDependencies ++= Seq(
   "com.typesafe.akka" %% "akka-actor" % "2.4.2-RC3",
   "com.typesafe.akka" %% "akka-stream" % "2.4.2-RC3",
   "com.typesafe.akka" %% "akka-http-core" % "2.4.2-RC3",
   "com.typesafe.akka" %% "akka-http-experimental" % "2.4.2-RC3",
-  "com.typesafe.play" %% "play-json" % "2.4.6",
-  "net.ceedubs" %% "ficus" % "1.1.2",
+  "com.typesafe.play" %% "play-json" % "2.5.0-M2",
+  "com.iheart" %% "ficus" % "1.2.1",
   "commons-io" % "commons-io" % "2.4",
-  "org.specs2" %% "specs2-core" % "2.4.15" % "test"
+  "org.specs2" %% "specs2-core" % "3.7" % "test"
 )
 
 scalacOptions ++= Seq("-unchecked", "-deprecation", "-feature")

@@ -75,7 +75,7 @@ abstract class ActorBot(val token: String, val config: Config = ConfigFactory.lo
 
     case Updates(updates) =>
       for (update <- updates) {
-        log.info(s"Handline $update")
+        log.info(s"Handling $update")
         tryHandle("message", update.message, handleMessage)
         tryHandle("inline query", update.inline_query, handleInlineQuery)
         tryHandle("chosen inline result", update.chosen_inline_result, handleChosenInlineResult)

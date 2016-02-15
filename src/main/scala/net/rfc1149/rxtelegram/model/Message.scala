@@ -17,7 +17,7 @@ case class Message(message_id: Long, from: User, date: Long, chat: Chat,
 
 object Message {
 
-  // Since Message has more than 22 fields, the Reads[Message] macro cannot be used because
+  // Since Message has more than 22 fields, the Json.reads[Message] macro cannot be used because
   // apply() won't be defined.
 
   implicit lazy val messageReads: Reads[Message] = Reads { js =>

@@ -2,7 +2,6 @@ package net.rfc1149.rxtelegram
 
 import akka.actor.ActorSystem
 import akka.http.scaladsl.Http
-import akka.http.scaladsl.Http.HostConnectionPool
 import akka.http.scaladsl.marshalling.Marshal
 import akka.http.scaladsl.model.MediaTypes.`application/json`
 import akka.http.scaladsl.model.Multipart.FormData.BodyPart
@@ -10,7 +9,7 @@ import akka.http.scaladsl.model._
 import akka.http.scaladsl.model.headers.Accept
 import akka.http.scaladsl.unmarshalling.{FromEntityUnmarshaller, PredefinedFromEntityUnmarshallers, Unmarshal}
 import akka.stream.Materializer
-import akka.stream.scaladsl.{Flow, Source}
+import akka.stream.scaladsl.{Sink, Source}
 import net.rfc1149.rxtelegram.model._
 import net.rfc1149.rxtelegram.model.media.Media
 import net.rfc1149.rxtelegram.utils._
@@ -18,7 +17,6 @@ import play.api.libs.json._
 
 import scala.concurrent.duration._
 import scala.concurrent.{ExecutionContext, Future}
-import scala.util.Try
 
 trait Bot {
 
@@ -32,8 +30,9 @@ trait Bot {
 
   private[this] var offset: Long = -1
 
-  private[this] def send(methodName: String, fields: Seq[(String, String)] = Seq(), media: Option[MediaParameter] = None): Future[JsValue] =
-    sendInternal(methodName, buildEntity(fields, media))
+  private[this] def send(methodName: String, fields: Seq[(String, String)] = Seq(), media: Option[MediaParameter] = None,
+                         potentiallyBlocking: Boolean = false): Future[JsValue] =
+    sendInternal(methodName, buildEntity(fields, media), potentiallyBlocking = potentiallyBlocking)
 
   def sendToMessage(data: Command): Future[Message] = send(data).map(_.as[Message])
 
@@ -41,20 +40,26 @@ trait Bot {
     sendInternal(data.methodName, data.buildEntity(includeMethod = false)).map(checkResult)
   }
 
-  private[this] def sendRaw(request: HttpRequest): Future[HttpResponse] = {
-    val freshPool: Flow[(HttpRequest, Any), (Try[HttpResponse], Any), HostConnectionPool] = Http().newHostConnectionPoolHttps("api.telegram.org", 443)
-    Source.single((request, None)).via(freshPool).runFold[HttpResponse](null) {
-        case (_, (r, _)) => r.get
-      }
-  }
+  private[this] lazy val host = "api.telegram.org"
+  private[this] lazy val port = 443
 
-  private[this] def sendInternal(methodName: String, entity: Future[MessageEntity]): Future[JsValue] = {
+  // Marking those private leads to an instantiation bug in Scala 2.11.7
+  lazy val apiPool = Http().newHostConnectionPoolHttps[Any](host, port)
+  lazy val apiFlow = Http().outgoingConnectionHttps(host, port)
+
+  private[this] def sendRaw(request: HttpRequest, potentiallyBlocking: Boolean = false): Future[HttpResponse] =
+    if (potentiallyBlocking)
+      Source.single(request).via(apiFlow).runWith(Sink.head)
+    else
+      Source.single((request, None)).via(apiPool).map(_._1.get).runWith(Sink.head)
+
+  private[this] def sendInternal(methodName: String, entity: Future[MessageEntity], potentiallyBlocking: Boolean = false): Future[JsValue] = {
     entity.map { fd =>
       HttpRequest(method = HttpMethods.POST,
         uri = s"https://api.telegram.org/bot$token/$methodName",
         headers = List(`Accept`(MediaTypes.`application/json`)),
         entity = fd)
-    }.flatMap(sendRaw).flatMap { response =>
+    }.flatMap(sendRaw(_, potentiallyBlocking = potentiallyBlocking)).flatMap { response =>
       response.status match {
         case status if status.isFailure() => throw HTTPException(status.toString())
         case status =>
@@ -74,7 +79,8 @@ trait Bot {
     }
 
   def getUpdates(limit: Long = 100, timeout: FiniteDuration = 0.seconds): Future[List[Update]] =
-    send("getUpdates", (offset + 1).toField("offset") ++  limit.toField("limit", 100) ++ timeout.toSeconds.toField("timeout", 0))
+    send("getUpdates", (offset + 1).toField("offset") ++  limit.toField("limit", 100) ++ timeout.toSeconds.toField("timeout", 0),
+      potentiallyBlocking = true)
       .map { json => (json \ "result").as[List[Update]] }
 
   def getUserProfilePhotos(user_id: Long, offset: Long = 0, limit: Long = 100): Future[UserProfilePhotos] =

@@ -1,9 +1,11 @@
 package net.rfc1149.rxtelegram
 
+import akka.NotUsed
 import akka.actor.Status.Failure
 import akka.actor.{Actor, ActorLogging, ActorSystem, Stash}
 import akka.pattern.pipe
-import akka.stream.{ActorMaterializer, Materializer}
+import akka.stream.scaladsl.Sink
+import akka.stream.{ActorMaterializer, Materializer, ThrottleMode}
 import com.typesafe.config.{Config, ConfigFactory}
 import net.ceedubs.ficus.Ficus._
 import net.rfc1149.rxtelegram.Bot.{ActionAnswerInlineQuery, Command}
@@ -22,7 +24,6 @@ abstract class ActorBot(val token: String, val config: Config = ConfigFactory.lo
   implicit val fm: Materializer = ActorMaterializer()
 
   private[this] val httpErrorRetryDelay = config.as[FiniteDuration]("rxtelegram.http-error-retry-delay")
-  private[this] val longPollingDelay = config.as[FiniteDuration]("rxtelegram.long-polling-delay")
 
   protected[this] var me: User = _
 
@@ -48,7 +49,8 @@ abstract class ActorBot(val token: String, val config: Config = ConfigFactory.lo
       setWebhook("")
       unstashAll()
       context.become(receiveIKnowMe)
-      self ! Replenish
+      // There is no backpressure here so we have to throttle manually
+      UpdateSource(token, config).throttle(10, 1.second, 20, ThrottleMode.Shaping).runWith(Sink.actorRef(self, NotUsed))
 
     case Failure(t) =>
       log.error(t, "error when getting information about myself")
@@ -73,22 +75,10 @@ abstract class ActorBot(val token: String, val config: Config = ConfigFactory.lo
     case GetMe =>
       sender ! me
 
-    case Updates(updates) =>
-      for (update <- updates) {
-        log.info(s"Handling $update")
-        tryHandle("message", update.message, handleMessage)
-        tryHandle("inline query", update.inline_query, handleInlineQuery)
-        tryHandle("chosen inline result", update.chosen_inline_result, handleChosenInlineResult)
-        acknowledgeUpdate(update)
-      }
-      self ! Replenish
-
-    case UpdatesError(throwable) =>
-      log.error(throwable, "error while getting updates")
-      context.system.scheduler.scheduleOnce(httpErrorRetryDelay, self, Replenish)
-
-    case Replenish =>
-      replenish()
+    case update: Update =>
+      tryHandle("message", update.message, handleMessage)
+      tryHandle("inline query", update.inline_query, handleInlineQuery)
+      tryHandle("chosen inline result", update.chosen_inline_result, handleChosenInlineResult)
 
     case data: ActionAnswerInlineQuery =>
       send(data) pipeTo sender()
@@ -114,18 +104,12 @@ abstract class ActorBot(val token: String, val config: Config = ConfigFactory.lo
       }
   }
 
-  private[this] def replenish(): Unit =
-    getUpdates(timeout = longPollingDelay).map(Updates).recover { case throwable => UpdatesError(throwable) }.pipeTo(self)
-
 }
 
 object ActorBot {
 
   case object GetMe
-  private[ActorBot] case object Replenish
   private[ActorBot] case object GetMyself
-  case class Updates(updates: List[Update])
-  private[ActorBot] case class UpdatesError(throwable: Throwable)
 
   case class SetWebhook(uri: String = "", certificate: Option[Media] = None)
 

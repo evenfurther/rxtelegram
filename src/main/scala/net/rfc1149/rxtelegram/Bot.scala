@@ -44,8 +44,8 @@ trait Bot {
   private[this] lazy val port = 443
 
   // Marking those private leads to an instantiation bug in Scala 2.11.7
-  lazy val apiPool = Http().newHostConnectionPoolHttps[Any](host, port)
-  lazy val apiFlow = Http().outgoingConnectionHttps(host, port)
+  private[this] lazy val apiPool = Http().newHostConnectionPoolHttps[Any](host, port)
+  private[this] lazy val apiFlow = Http().outgoingConnectionHttps(host, port)
 
   private[this] def sendRaw(request: HttpRequest, potentiallyBlocking: Boolean = false): Future[HttpResponse] =
     if (potentiallyBlocking)

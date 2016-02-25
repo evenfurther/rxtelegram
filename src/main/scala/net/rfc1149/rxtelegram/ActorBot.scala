@@ -2,7 +2,7 @@ package net.rfc1149.rxtelegram
 
 import akka.NotUsed
 import akka.actor.Status.Failure
-import akka.actor.{Actor, ActorLogging, ActorSystem, Stash}
+import akka.actor.{Actor, ActorLogging, ActorRef, ActorSystem, Stash}
 import akka.pattern.pipe
 import akka.stream.scaladsl.Sink
 import akka.stream.{ActorMaterializer, Materializer, ThrottleMode}
@@ -12,8 +12,8 @@ import net.rfc1149.rxtelegram.Bot.{ActionAnswerInlineQuery, Command}
 import net.rfc1149.rxtelegram.model._
 import net.rfc1149.rxtelegram.model.media.Media
 
-import scala.concurrent.ExecutionContext
 import scala.concurrent.duration._
+import scala.concurrent.{ExecutionContext, Future}
 
 abstract class ActorBot(val token: String, val config: Config = ConfigFactory.load()) extends Actor with ActorLogging with Stash with Bot {
 
@@ -53,7 +53,7 @@ abstract class ActorBot(val token: String, val config: Config = ConfigFactory.lo
       UpdateSource(token, config).throttle(10, 1.second, 20, ThrottleMode.Shaping).runWith(Sink.actorRef(self, NotUsed))
 
     case Failure(t) =>
-      log.error(t, "error when getting information about myself")
+      log.error(t, s"error when getting information about myself, will retry in $httpErrorRetryDelay")
       context.system.scheduler.scheduleOnce(httpErrorRetryDelay, self, GetMyself)
 
     case other =>
@@ -71,6 +71,22 @@ abstract class ActorBot(val token: String, val config: Config = ConfigFactory.lo
     }
   }
 
+  private[this] var ongoingSend: Boolean = false
+  private[this] val sendQueue = new scala.collection.mutable.Queue[(() => Future[_], ActorRef)]
+
+  private[this] def computeAndSendResult(f: Future[_], r: ActorRef) = {
+    assert(!ongoingSend)
+    ongoingSend = true
+    f.pipeTo(r)
+    f.onComplete(_ => self ! Done)
+  }
+
+  private[this] def attemptSend(f: () => Future[_], r: ActorRef) =
+    if (ongoingSend)
+      sendQueue += ((f, r))
+    else
+      computeAndSendResult(f(), r)
+
   def receiveIKnowMe: Receive = {
     case GetMe =>
       sender ! me
@@ -81,10 +97,14 @@ abstract class ActorBot(val token: String, val config: Config = ConfigFactory.lo
       tryHandle("chosen inline result", update.chosen_inline_result, handleChosenInlineResult)
 
     case data: ActionAnswerInlineQuery =>
-      send(data) pipeTo sender()
+      attemptSend(() => send(data), sender())
 
     case data: Command =>
-      sendToMessage(data) pipeTo sender()
+      attemptSend(() => sendToMessage(data), sender())
+
+    case Done =>
+      ongoingSend = false
+      sendQueue.dequeueFirst(_ => true).foreach { case (f, r) => computeAndSendResult(f(), r) }
 
     case SetWebhook(uri, certificate) =>
       setWebhook(uri, certificate).pipeTo(sender())
@@ -109,7 +129,8 @@ abstract class ActorBot(val token: String, val config: Config = ConfigFactory.lo
 object ActorBot {
 
   case object GetMe
-  private[ActorBot] case object GetMyself
+  private case object GetMyself
+  private case object Done
 
   case class SetWebhook(uri: String = "", certificate: Option[Media] = None)
 

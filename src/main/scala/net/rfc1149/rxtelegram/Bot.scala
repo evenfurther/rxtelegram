@@ -228,10 +228,11 @@ object Bot {
     def apply(message: Message): ActionForwardMessage = ActionForwardMessage(Reply(message))
   }
 
-  case class ActionMessage(text: String, disable_web_page_preview: Boolean = false, parse_mode: ParseMode = ParseModeDefault,
-                           replyMarkup: Option[ReplyMarkup] = None) extends Action {
+  case class ActionMessage(text: String, disable_web_page_preview: Boolean = false, disable_notification: Boolean = false,
+                           parse_mode: ParseMode = ParseModeDefault, replyMarkup: Option[ReplyMarkup] = None) extends Action {
     val methodName = "sendMessage"
     val fields = text.toField("text") ++ disable_web_page_preview.toField("disable_web_page_preview", false) ++
+      disable_notification.toField("disable_notification", false) ++
       parse_mode.option.toField("parse_mode")
   }
 

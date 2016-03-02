@@ -2,7 +2,6 @@ package net.rfc1149.rxtelegram
 
 import akka.actor.ActorSystem
 import akka.http.scaladsl.Http
-import akka.http.scaladsl.marshalling.Marshal
 import akka.http.scaladsl.model.MediaTypes.`application/json`
 import akka.http.scaladsl.model.Multipart.FormData.BodyPart
 import akka.http.scaladsl.model._
@@ -53,13 +52,12 @@ trait Bot {
     else
       Source.single((request, None)).via(apiPool).map(_._1.get).runWith(Sink.head)
 
-  private[this] def sendInternal(methodName: String, entity: Future[MessageEntity], potentiallyBlocking: Boolean = false): Future[JsValue] = {
-    entity.map { fd =>
-      HttpRequest(method = HttpMethods.POST,
-        uri = s"https://api.telegram.org/bot$token/$methodName",
-        headers = List(`Accept`(MediaTypes.`application/json`)),
-        entity = fd)
-    }.flatMap(sendRaw(_, potentiallyBlocking = potentiallyBlocking)).flatMap { response =>
+  private[this] def sendInternal(methodName: String, entity: MessageEntity, potentiallyBlocking: Boolean = false): Future[JsValue] = {
+    val request = HttpRequest(method = HttpMethods.POST,
+      uri = s"https://api.telegram.org/bot$token/$methodName",
+      headers = List(`Accept`(MediaTypes.`application/json`)),
+      entity = entity)
+    sendRaw(request, potentiallyBlocking = potentiallyBlocking).flatMap { response =>
       response.status match {
         case status if status.isFailure() => throw HTTPException(status.toString())
         case status =>
@@ -187,7 +185,7 @@ object Bot {
   }
 
   sealed trait Command {
-    def buildEntity(includeMethod: Boolean)(implicit ec: ExecutionContext): Future[MessageEntity]
+    def buildEntity(includeMethod: Boolean): MessageEntity
     val methodName: String
   }
 
@@ -198,12 +196,12 @@ object Bot {
     val fields: List[(String, String)]
     val media: Option[MediaParameter] = None
 
-    def buildEntity(target: Target, includeMethod: Boolean)(implicit ec: ExecutionContext) = {
+    def buildEntity(target: Target, includeMethod: Boolean) = {
       val allFields = fields ++ replyMarkup.toField("reply_markup") ++ target.toFields ++ (if (includeMethod) Seq("method" -> methodName) else Seq())
       Bot.buildEntity(allFields, media)
     }
 
-    override def buildEntity(includeMethod: Boolean)(implicit ec: ExecutionContext) = {
+    override def buildEntity(includeMethod: Boolean) = {
       val allFields = fields ++ replyMarkup.toField("reply_markup") ++ (if (includeMethod) Seq("method" -> methodName) else Seq())
       Bot.buildEntity(allFields, media)
     }
@@ -212,7 +210,7 @@ object Bot {
   }
 
   case class Targetted(target: Target, action: Action) extends Command {
-    override def buildEntity(includeMethod: Boolean)(implicit ec: ExecutionContext) =
+    override def buildEntity(includeMethod: Boolean) =
       action.buildEntity(target, includeMethod)
 
     val methodName = action.methodName
@@ -318,14 +316,14 @@ object Bot {
     val option = Some("HTML")
   }
 
-  def buildEntity(fields: Seq[(String, String)], media: Option[MediaParameter])(implicit ec: ExecutionContext): Future[MessageEntity] = {
+  def buildEntity(fields: Seq[(String, String)], media: Option[MediaParameter]): MessageEntity = {
     if (media.isDefined) {
       val data = fields.map { case (k, v) => BodyPart(k, HttpEntity(v)) }
-      Marshal(Multipart.FormData(media.get.toBodyPart :: data.toList: _*)).to[MessageEntity]
+      Multipart.FormData(media.get.toBodyPart :: data.toList: _*).toEntity()
     } else if (fields.isEmpty)
-      Future.successful(HttpEntity.Empty)
+      HttpEntity.Empty
     else
-      Marshal(FormData(fields.toMap)).to[MessageEntity]
+      FormData(fields.toMap).toEntity
   }
 
 }

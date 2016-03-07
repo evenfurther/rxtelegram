@@ -7,6 +7,7 @@ import akka.http.scaladsl.model.Multipart.FormData.BodyPart
 import akka.http.scaladsl.model._
 import akka.http.scaladsl.model.headers.Accept
 import akka.http.scaladsl.unmarshalling.{FromEntityUnmarshaller, PredefinedFromEntityUnmarshallers, Unmarshal}
+import akka.http.scaladsl.util.FastFuture
 import akka.stream.Materializer
 import akka.stream.scaladsl.{Sink, Source}
 import net.rfc1149.rxtelegram.model._
@@ -92,7 +93,7 @@ trait Bot {
           sendRaw(HttpRequest(method = HttpMethods.GET, uri = s"https://api.telegram.org/file/bot$token/$path",
             headers = List(`Accept`(MediaRanges.`*/*`)))).map(response => (file, Some(response.entity)))
         case None =>
-          Future.successful((file, None))
+          FastFuture.successful((file, None))
       }
     }
   }

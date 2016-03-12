@@ -2,14 +2,14 @@ package net.rfc1149.rxtelegram
 
 import akka.actor.ActorSystem
 import akka.http.scaladsl.Http
-import akka.http.scaladsl.model.MediaTypes.`application/json`
 import akka.http.scaladsl.model.Multipart.FormData.BodyPart
 import akka.http.scaladsl.model._
 import akka.http.scaladsl.model.headers.Accept
-import akka.http.scaladsl.unmarshalling.{FromEntityUnmarshaller, PredefinedFromEntityUnmarshallers, Unmarshal}
+import akka.http.scaladsl.unmarshalling.Unmarshal
 import akka.http.scaladsl.util.FastFuture
 import akka.stream.Materializer
 import akka.stream.scaladsl.{Sink, Source}
+import de.heikoseeberger.akkahttpplayjson.PlayJsonSupport
 import net.rfc1149.rxtelegram.model._
 import net.rfc1149.rxtelegram.model.media.Media
 import net.rfc1149.rxtelegram.utils._
@@ -42,8 +42,6 @@ trait Bot {
 
   private[this] lazy val host = "api.telegram.org"
   private[this] lazy val port = 443
-
-  // Marking those private leads to an instantiation bug in Scala 2.11.7
   private[this] lazy val apiPool = Http().newHostConnectionPoolHttps[Any](host, port)
   private[this] lazy val apiFlow = Http().outgoingConnectionHttps(host, port)
 
@@ -106,11 +104,7 @@ trait Bot {
 
 }
 
-object Bot {
-
-  implicit def jsonUnmarshaller[T: Reads](implicit fm: Materializer, ec: ExecutionContext): FromEntityUnmarshaller[T] =
-    PredefinedFromEntityUnmarshallers.stringUnmarshaller.forContentTypes(`application/json`)
-      .map(s => implicitly[Reads[T]].reads(Json.parse(s)).recoverTotal(e => throw new RuntimeException(s"Exception $e when parsing $s")))
+object Bot extends PlayJsonSupport {
 
   sealed trait ChatAction {
     val action: String

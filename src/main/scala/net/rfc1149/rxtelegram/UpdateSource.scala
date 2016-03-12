@@ -6,7 +6,7 @@ import akka.pattern.pipe
 import akka.stream.actor.ActorPublisher
 import akka.stream.actor.ActorPublisherMessage.{Cancel, Request}
 import akka.stream.scaladsl.Source
-import akka.stream.{ActorMaterializer, Attributes, Materializer, SourceShape}
+import akka.stream.{ActorMaterializer, Attributes, Materializer}
 import com.typesafe.config.{Config, ConfigFactory}
 import net.ceedubs.ficus.Ficus._
 import net.rfc1149.rxtelegram.UpdateSource.{Reconnect, UpdateError, Updates}

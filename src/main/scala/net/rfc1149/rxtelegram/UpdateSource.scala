@@ -69,7 +69,7 @@ class UpdateSource(val token: String, val config: Config = ConfigFactory.load())
 object UpdateSource {
 
   def apply(token: String, config: Config = ConfigFactory.load()): Source[Update, ActorRef] =
-    Source.actorPublisher(Props(new UpdateSource(token, config))).withAttributes(Attributes.name("rxtelegram.UpdateSource"))
+    Source.actorPublisher(Props(new UpdateSource(token, config))).named("rxtelegram.UpdateSource")
 
   private case class Updates(updates: List[Update])
   private case class UpdateError(throwable: Throwable) extends Exception

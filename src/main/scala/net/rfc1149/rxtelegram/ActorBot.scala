@@ -34,7 +34,7 @@ abstract class ActorBot(val token: String, val config: Config = ConfigFactory.lo
   protected[this] def handleChosenInlineResult(chosenInlineResult: ChosenInlineResult): Unit = sys.error("unhandled chosen inline result")
 
   protected[this] def handleOther(other: Any): Unit = {
-    log.info(s"received unknown content: $other")
+    log.info("received unknown content: {}", other)
   }
 
   override def preStart() =
@@ -53,7 +53,7 @@ abstract class ActorBot(val token: String, val config: Config = ConfigFactory.lo
       UpdateSource(token, config).throttle(10, 1.second, 20, ThrottleMode.Shaping).runWith(Sink.actorRef(self, NotUsed))
 
     case Failure(t) =>
-      log.error(t, s"error when getting information about myself, will retry in $httpErrorRetryDelay")
+      log.error(t, "error when getting information about myself, will retry in {}", httpErrorRetryDelay)
       context.system.scheduler.scheduleOnce(httpErrorRetryDelay, self, GetMyself)
 
     case other =>
@@ -66,7 +66,7 @@ abstract class ActorBot(val token: String, val config: Config = ConfigFactory.lo
         handle(obj)
       } catch {
         case t: Throwable =>
-          log.error(t, s"exception when handling $kind $obj")
+          log.error(t, "exception when handling {} {}", kind, obj)
       }
     }
   }
@@ -120,7 +120,7 @@ abstract class ActorBot(val token: String, val config: Config = ConfigFactory.lo
         handleOther(other)
       } catch {
         case t: Throwable =>
-          log.error(t, s"error when handling $other")
+          log.error(t, "error when handling {}", other)
       }
   }
 

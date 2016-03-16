@@ -42,7 +42,7 @@ trait ChatActorBot extends Actor with ActorLogging {
         handleMessage(message)
       } catch {
         case t: Throwable =>
-          log.error(t, s"handling message $message")
+          log.error(t, "handling message {}", message)
       }
     case action: Action =>
       context.parent.forward(Targetted(target, action))
@@ -51,7 +51,7 @@ trait ChatActorBot extends Actor with ActorLogging {
         handleOther(other)
       } catch {
         case t: Throwable =>
-          log.error(t, s"handling other data $other")
+          log.error(t, "handling other data {}", other)
       }
   }
 

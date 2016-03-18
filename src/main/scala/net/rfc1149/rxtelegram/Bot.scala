@@ -42,7 +42,7 @@ trait Bot {
 
   private[this] lazy val host = "api.telegram.org"
   private[this] lazy val port = 443
-  private[this] lazy val apiPool = Http().newHostConnectionPoolHttps[Any](host, port)
+  private[this] lazy val apiPool = Http().cachedHostConnectionPoolHttps[Any](host, port)
   private[this] lazy val apiFlow = Http().outgoingConnectionHttps(host, port)
 
   private[this] def sendRaw(request: HttpRequest, potentiallyBlocking: Boolean = false): Future[HttpResponse] =

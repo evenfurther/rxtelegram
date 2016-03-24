@@ -89,7 +89,7 @@ trait Bot {
       file.file_path match {
         case Some(path) =>
           sendRaw(HttpRequest(method = HttpMethods.GET, uri = s"https://api.telegram.org/file/bot$token/$path",
-            headers = List(`Accept`(MediaRanges.`*/*`)))).map(response => (file, Some(response.entity)))
+            headers = List(Accept(MediaRanges.`*/*`)))).map(response => (file, Some(response.entity)))
         case None =>
           FastFuture.successful((file, None))
       }

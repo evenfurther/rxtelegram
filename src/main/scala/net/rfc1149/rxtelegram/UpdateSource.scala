@@ -25,9 +25,9 @@ class UpdateSource(val token: String, val config: Config = ConfigFactory.load())
   private[this] val longPollingDelay = config.as[FiniteDuration]("rxtelegram.long-polling-delay")
 
   /**
-    * `true` if a connection is either in progress or has been scheduled. `false` when there is no connection
-    * because of an absent demand.
-    */
+   * `true` if a connection is either in progress or has been scheduled. `false` when there is no connection
+   * because of an absent demand.
+   */
   private[this] var ongoingConnection = false
 
   private[this] def connect() = {
@@ -37,17 +37,17 @@ class UpdateSource(val token: String, val config: Config = ConfigFactory.load())
   }
 
   override def receive = {
-    case Request(_) =>
+    case Request(_) ⇒
       getMe.pipeTo(self)
       if (!ongoingConnection)
         connect()
 
-    case Cancel =>
+    case Cancel ⇒
       context.stop(self)
 
-    case Updates(updates) =>
+    case Updates(updates) ⇒
       assert(updates.size <= totalDemand, "too many updates received")
-      updates.foreach { update =>
+      updates.foreach { update ⇒
         onNext(update)
         acknowledgeUpdate(update)
       }
@@ -56,11 +56,11 @@ class UpdateSource(val token: String, val config: Config = ConfigFactory.load())
       else
         ongoingConnection = false
 
-    case Failure(UpdateError(throwable)) =>
+    case Failure(UpdateError(throwable)) ⇒
       log.error(throwable, "error when getting updates")
       context.system.scheduler.scheduleOnce(httpErrorRetryDelay, self, Reconnect)
 
-    case Reconnect =>
+    case Reconnect ⇒
       connect()
   }
 

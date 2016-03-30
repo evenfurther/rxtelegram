@@ -19,38 +19,38 @@ trait ChatActorBot extends Actor with ActorLogging {
     context.parent.forward(other)
 
   def receive = {
-    case (user: User, chat_id: Long) =>
+    case (user: User, chat_id: Long) ⇒
       me = user
       target = To(chat_id)
       try {
         ready_to_send()
       } catch {
-        case t: Throwable =>
+        case t: Throwable ⇒
           log.error(t, "receiving chat information")
       }
-    case message: Message =>
+    case message: Message ⇒
       if (chat == null) {
         chat = message.chat
         try {
           ready()
         } catch {
-          case t: Throwable =>
+          case t: Throwable ⇒
             log.error(t, "receiving initial message from peer")
         }
       }
       try {
         handleMessage(message)
       } catch {
-        case t: Throwable =>
+        case t: Throwable ⇒
           log.error(t, "handling message {}", message)
       }
-    case action: Action =>
+    case action: Action ⇒
       context.parent.forward(Targetted(target, action))
-    case other =>
+    case other ⇒
       try {
         handleOther(other)
       } catch {
-        case t: Throwable =>
+        case t: Throwable ⇒
           log.error(t, "handling other data {}", other)
       }
   }

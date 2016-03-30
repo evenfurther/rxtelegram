@@ -41,10 +41,10 @@ abstract class ActorBot(val token: String, val config: Config = ConfigFactory.lo
     self ! GetMyself
 
   override def receive = {
-    case GetMyself =>
+    case GetMyself ⇒
       getMe.pipeTo(self)
 
-    case user: User =>
+    case user: User ⇒
       me = user
       setWebhook("")
       unstashAll()
@@ -52,74 +52,74 @@ abstract class ActorBot(val token: String, val config: Config = ConfigFactory.lo
       // There is no backpressure here so we have to throttle manually
       UpdateSource(token, config).throttle(10, 1.second, 20, ThrottleMode.Shaping).runWith(Sink.actorRef(self, NotUsed))
 
-    case Failure(t) =>
+    case Failure(t) ⇒
       log.error(t, "error when getting information about myself, will retry in {}", httpErrorRetryDelay)
       context.system.scheduler.scheduleOnce(httpErrorRetryDelay, self, GetMyself)
 
-    case other =>
+    case other ⇒
       stash()
   }
 
-  private def tryHandle[T](kind: String, objOpt: Option[T], handle: T => Unit) = {
-    objOpt.foreach { obj =>
+  private def tryHandle[T](kind: String, objOpt: Option[T], handle: T ⇒ Unit) = {
+    objOpt.foreach { obj ⇒
       try {
         handle(obj)
       } catch {
-        case t: Throwable =>
+        case t: Throwable ⇒
           log.error(t, "exception when handling {} {}", kind, obj)
       }
     }
   }
 
   private[this] var ongoingSend: Boolean = false
-  private[this] val sendQueue = new scala.collection.mutable.Queue[(() => Future[_], ActorRef)]
+  private[this] val sendQueue = new scala.collection.mutable.Queue[(() ⇒ Future[_], ActorRef)]
 
   private[this] def computeAndSendResult(f: Future[_], r: ActorRef) = {
     assert(!ongoingSend)
     ongoingSend = true
     f.pipeTo(r)
-    f.onComplete(_ => self ! Done)
+    f.onComplete(_ ⇒ self ! Done)
   }
 
-  private[this] def attemptSend(f: () => Future[_], r: ActorRef) =
+  private[this] def attemptSend(f: () ⇒ Future[_], r: ActorRef) =
     if (ongoingSend)
       sendQueue += ((f, r))
     else
       computeAndSendResult(f(), r)
 
   def receiveIKnowMe: Receive = {
-    case GetMe =>
+    case GetMe ⇒
       sender ! me
 
-    case update: Update =>
+    case update: Update ⇒
       tryHandle("message", update.message, handleMessage)
       tryHandle("inline query", update.inline_query, handleInlineQuery)
       tryHandle("chosen inline result", update.chosen_inline_result, handleChosenInlineResult)
 
-    case data: ActionAnswerInlineQuery =>
-      attemptSend(() => send(data), sender())
+    case data: ActionAnswerInlineQuery ⇒
+      attemptSend(() ⇒ send(data), sender())
 
-    case data: Command =>
-      attemptSend(() => sendToMessage(data), sender())
+    case data: Command ⇒
+      attemptSend(() ⇒ sendToMessage(data), sender())
 
-    case Done =>
+    case Done ⇒
       ongoingSend = false
-      sendQueue.dequeueFirst(_ => true).foreach { case (f, r) => computeAndSendResult(f(), r) }
+      sendQueue.dequeueFirst(_ ⇒ true).foreach { case (f, r) ⇒ computeAndSendResult(f(), r) }
 
-    case SetWebhook(uri, certificate) =>
+    case SetWebhook(uri, certificate) ⇒
       setWebhook(uri, certificate).pipeTo(sender())
 
-    case GetUserProfilePhotos(user, offset, limit) =>
+    case GetUserProfilePhotos(user, offset, limit) ⇒
       getUserProfilePhotos(user.id, offset, limit).pipeTo(sender())
 
-    case GetFile(file_id) =>
+    case GetFile(file_id) ⇒
       getFile(file_id).pipeTo(sender())
 
-    case other =>
+    case other ⇒
       try {
         handleOther(other)
       } catch {
-        case t: Throwable =>
+        case t: Throwable ⇒
           log.error(t, "error when handling {}", other)
       }
   }

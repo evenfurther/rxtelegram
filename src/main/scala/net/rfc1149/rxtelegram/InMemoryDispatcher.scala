@@ -7,7 +7,7 @@ trait InMemoryDispatcher extends ChatDispatcher {
   private[this] var selections: Map[Long, ActorRef] = Map()
 
   override def addChat(id: Long, actorSelection: ActorRef): Unit =
-    selections += id -> actorSelection
+    selections += id → actorSelection
 
   override def removeChat(id: Long): Unit =
     selections -= id

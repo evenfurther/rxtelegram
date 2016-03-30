@@ -31,7 +31,7 @@ trait Bot {
   private[this] var offset: Long = -1
 
   private[this] def send(methodName: String, fields: Seq[(String, String)] = Seq(), media: Option[MediaParameter] = None,
-                         potentiallyBlocking: Boolean = false): Future[JsValue] =
+    potentiallyBlocking: Boolean = false): Future[JsValue] =
     sendInternal(methodName, buildEntity(fields, media), potentiallyBlocking = potentiallyBlocking)
 
   def sendToMessage(data: Command): Future[Message] = send(data).map(_.as[Message])
@@ -52,18 +52,20 @@ trait Bot {
       Source.single((request, None)).via(apiPool).map(_._1.get).runWith(Sink.head)
 
   private[this] def sendInternal(methodName: String, entity: MessageEntity, potentiallyBlocking: Boolean = false): Future[JsValue] = {
-    val request = HttpRequest(method = HttpMethods.POST,
-      uri = s"https://api.telegram.org/bot$token/$methodName",
+    val request = HttpRequest(
+      method  = HttpMethods.POST,
+      uri     = s"https://api.telegram.org/bot$token/$methodName",
       headers = List(`Accept`(MediaTypes.`application/json`)),
-      entity = entity)
-    sendRaw(request, potentiallyBlocking = potentiallyBlocking).flatMap { response =>
+      entity  = entity
+    )
+    sendRaw(request, potentiallyBlocking = potentiallyBlocking).flatMap { response ⇒
       response.status match {
-        case status if status.isFailure() => throw HTTPException(status.toString())
-        case status =>
+        case status if status.isFailure() ⇒ throw HTTPException(status.toString())
+        case status ⇒
           try {
             Unmarshal(response.entity).to[JsValue]
           } catch {
-            case t: Throwable =>
+            case t: Throwable ⇒
               throw JSONException(t)
           }
       }
@@ -71,26 +73,26 @@ trait Bot {
   }
 
   def getMe: Future[User] =
-    send("getMe").map { json =>
+    send("getMe").map { json ⇒
       (json \ "result").as[User]
     }
 
   def getUpdates(limit: Long = 100, timeout: FiniteDuration = 0.seconds): Future[List[Update]] =
-    send("getUpdates", (offset + 1).toField("offset") ++  limit.toField("limit", 100) ++ timeout.toSeconds.toField("timeout", 0),
+    send("getUpdates", (offset + 1).toField("offset") ++ limit.toField("limit", 100) ++ timeout.toSeconds.toField("timeout", 0),
       potentiallyBlocking = true)
-      .map { json => (json \ "result").as[List[Update]] }
+      .map { json ⇒ (json \ "result").as[List[Update]] }
 
   def getUserProfilePhotos(user_id: Long, offset: Long = 0, limit: Long = 100): Future[UserProfilePhotos] =
     send("getUserProfilePhotos", user_id.toField("user_id") ++ offset.toField("offset", 0) ++ limit.toField("limit", 100))
-      .map { json => (json \ "result").as[UserProfilePhotos] }
+      .map { json ⇒ (json \ "result").as[UserProfilePhotos] }
 
   def getFile(file_id: String): Future[(File, Option[ResponseEntity])] = {
-    send("getFile", file_id.toField("file_id")).map { json => (json \ "result").as[File] }.flatMap { file =>
+    send("getFile", file_id.toField("file_id")).map { json ⇒ (json \ "result").as[File] }.flatMap { file ⇒
       file.file_path match {
-        case Some(path) =>
+        case Some(path) ⇒
           sendRaw(HttpRequest(method = HttpMethods.GET, uri = s"https://api.telegram.org/file/bot$token/$path",
-            headers = List(Accept(MediaRanges.`*/*`)))).map(response => (file, Some(response.entity)))
-        case None =>
+            headers = List(Accept(MediaRanges.`*/*`)))).map(response ⇒ (file, Some(response.entity)))
+        case None ⇒
           FastFuture.successful((file, None))
       }
     }
@@ -100,7 +102,7 @@ trait Bot {
     offset = offset.max(update.update_id)
 
   def setWebhook(uri: String, certificate: Option[Media] = None): Future[JsValue] =
-    send("setWebhook", Seq("url" -> uri), certificate.map(MediaParameter("certificate", _)))
+    send("setWebhook", Seq("url" → uri), certificate.map(MediaParameter("certificate", _)))
 
 }
 
@@ -192,12 +194,12 @@ object Bot extends PlayJsonSupport {
     val media: Option[MediaParameter] = None
 
     def buildEntity(target: Target, includeMethod: Boolean) = {
-      val allFields = fields ++ replyMarkup.toField("reply_markup") ++ target.toFields ++ (if (includeMethod) Seq("method" -> methodName) else Seq())
+      val allFields = fields ++ replyMarkup.toField("reply_markup") ++ target.toFields ++ (if (includeMethod) Seq("method" → methodName) else Seq())
       Bot.buildEntity(allFields, media)
     }
 
     override def buildEntity(includeMethod: Boolean) = {
-      val allFields = fields ++ replyMarkup.toField("reply_markup") ++ (if (includeMethod) Seq("method" -> methodName) else Seq())
+      val allFields = fields ++ replyMarkup.toField("reply_markup") ++ (if (includeMethod) Seq("method" → methodName) else Seq())
       Bot.buildEntity(allFields, media)
     }
 
@@ -222,7 +224,7 @@ object Bot extends PlayJsonSupport {
   }
 
   case class ActionMessage(text: String, disable_web_page_preview: Boolean = false, disable_notification: Boolean = false,
-                           parse_mode: ParseMode = ParseModeDefault, replyMarkup: Option[ReplyMarkup] = None) extends Action {
+      parse_mode: ParseMode = ParseModeDefault, replyMarkup: Option[ReplyMarkup] = None) extends Action {
     val methodName = "sendMessage"
     val fields = text.toField("text") ++ disable_web_page_preview.toField("disable_web_page_preview", false) ++
       disable_notification.toField("disable_notification", false) ++
@@ -236,7 +238,7 @@ object Bot extends PlayJsonSupport {
   }
 
   case class ActionAudio(audio: Media, duration: Option[FiniteDuration] = None,
-                         performer: Option[String], title: Option[String], replyMarkup: Option[ReplyMarkup] = None) extends Action {
+      performer: Option[String], title: Option[String], replyMarkup: Option[ReplyMarkup] = None) extends Action {
     val methodName = "sendAudio"
     val fields = duration.toField("duration") ++ performer.toField("performer") ++ title.toField("title")
     override val media = namedMedia("audio", audio)
@@ -261,7 +263,7 @@ object Bot extends PlayJsonSupport {
   }
 
   case class ActionVideo(video: Media, duration: Option[FiniteDuration] = None,
-                         caption: Option[String], replyMarkup: Option[ReplyMarkup] = None) extends Action {
+      caption: Option[String], replyMarkup: Option[ReplyMarkup] = None) extends Action {
     val methodName = "sendVideo"
     val fields = duration.map(_.toSeconds).toField("duration") ++ caption.toField("caption")
     override val media = namedMedia("video", video)
@@ -283,7 +285,7 @@ object Bot extends PlayJsonSupport {
   }
 
   case class ActionAnswerInlineQuery(inlineQueryId: String, results: Seq[InlineQueryResult],
-    cacheTime: Long = 300, isPersonal: Boolean = false, nextOffset: Option[String] = None) extends Action {
+      cacheTime: Long = 300, isPersonal: Boolean = false, nextOffset: Option[String] = None) extends Action {
     val methodName = "answerInlineQuery"
     val replyMarkup = None
     val fields = inlineQueryId.toField("inline_query_id") ++
@@ -296,7 +298,7 @@ object Bot extends PlayJsonSupport {
   }
 
   object ParseMode {
-    implicit val parseModeWrites: Writes[ParseMode] = Writes { pm => Json.toJson(pm.option) }
+    implicit val parseModeWrites: Writes[ParseMode] = Writes { pm ⇒ Json.toJson(pm.option) }
   }
 
   object ParseModeDefault extends ParseMode {
@@ -313,7 +315,7 @@ object Bot extends PlayJsonSupport {
 
   def buildEntity(fields: Seq[(String, String)], media: Option[MediaParameter]): MessageEntity = {
     if (media.isDefined) {
-      val data = fields.map { case (k, v) => BodyPart(k, HttpEntity(v)) }
+      val data = fields.map { case (k, v) ⇒ BodyPart(k, HttpEntity(v)) }
       Multipart.FormData(media.get.toBodyPart :: data.toList: _*).toEntity()
     } else if (fields.isEmpty)
       HttpEntity.Empty

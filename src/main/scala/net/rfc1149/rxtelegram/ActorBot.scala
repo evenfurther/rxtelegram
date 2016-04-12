@@ -10,6 +10,7 @@ import com.typesafe.config.{Config, ConfigFactory}
 import net.ceedubs.ficus.Ficus._
 import net.rfc1149.rxtelegram.Bot.{ActionAnswerInlineQuery, Command}
 import net.rfc1149.rxtelegram.model._
+import net.rfc1149.rxtelegram.model.inlinequeries.InlineQuery
 import net.rfc1149.rxtelegram.model.media.Media
 
 import scala.concurrent.duration._

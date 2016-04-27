@@ -31,7 +31,7 @@ libraryDependencies ++= Seq(
   "com.typesafe.akka" %% "akka-http-experimental" % "2.4.4",
   "de.heikoseeberger" %% "akka-http-play-json" % "1.5.2",
   "com.iheart" %% "ficus" % "1.2.1",
-  "commons-io" % "commons-io" % "2.4",
+  "commons-io" % "commons-io" % "2.5",
   "org.specs2" %% "specs2-core" % "3.7" % "test"
 )
 

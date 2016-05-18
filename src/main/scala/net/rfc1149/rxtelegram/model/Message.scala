@@ -3,7 +3,7 @@ package net.rfc1149.rxtelegram.model
 import play.api.libs.json.{JsSuccess, Reads}
 
 case class Message(message_id: Long, from: User, date: Long, chat: Chat,
-  forward_from: Option[User], forward_date: Option[Long],
+  forward_from: Option[User], forward_from_chat: Option[Chat], forward_date: Option[Long],
   reply_to_message: Option[Message], text: Option[String],
   entities: Option[Array[MessageEntity]],
   audio: Option[Audio], voice: Option[Voice], document: Option[Document],
@@ -29,6 +29,7 @@ object Message {
       date                    = (js \ "date").as[Long],
       chat                    = (js \ "chat").as[Chat],
       forward_from            = (js \ "forward_from").asOpt[User],
+      forward_from_chat       = (js \ "forward_from_chat").asOpt[Chat],
       forward_date            = (js \ "forward_date").asOpt[Long],
       reply_to_message        = (js \ "reply_to_message").asOpt[Message],
       text                    = (js \ "text").asOpt[String],

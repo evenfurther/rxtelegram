@@ -25,10 +25,10 @@ resolvers ++= Seq("Typesafe repository" at "http://repo.typesafe.com/typesafe/re
                   Resolver.jcenterRepo)
 
 libraryDependencies ++= Seq(
-  "com.typesafe.akka" %% "akka-actor" % "2.4.9",
-  "com.typesafe.akka" %% "akka-stream" % "2.4.9",
-  "com.typesafe.akka" %% "akka-http-core" % "2.4.9",
-  "com.typesafe.akka" %% "akka-http-experimental" % "2.4.9",
+  "com.typesafe.akka" %% "akka-actor" % "2.4.10",
+  "com.typesafe.akka" %% "akka-stream" % "2.4.10",
+  "com.typesafe.akka" %% "akka-http-core" % "2.4.10",
+  "com.typesafe.akka" %% "akka-http-experimental" % "2.4.10",
   "de.heikoseeberger" %% "akka-http-play-json" % "1.9.0",
   "com.iheart" %% "ficus" % "1.2.6",
   "commons-io" % "commons-io" % "2.5",

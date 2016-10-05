@@ -2,7 +2,7 @@ package net.rfc1149.rxtelegram.model
 
 import play.api.libs.json.{JsSuccess, Reads}
 
-case class Message(message_id: Long, from: User, date: Long, chat: Chat,
+case class Message(message_id: Long, from: Option[User], date: Long, chat: Chat,
   forward_from: Option[User], forward_from_chat: Option[Chat], forward_date: Option[Long],
   reply_to_message: Option[Message], text: Option[String],
   entities: Option[Array[MessageEntity]],
@@ -25,7 +25,7 @@ object Message {
   implicit lazy val messageReads: Reads[Message] = Reads { js ⇒
     JsSuccess(Message(
       message_id              = (js \ "message_id").as[Long],
-      from                    = (js \ "from").as[User],
+      from                    = (js \ "from").asOpt[User],
       date                    = (js \ "date").as[Long],
       chat                    = (js \ "chat").as[Chat],
       forward_from            = (js \ "forward_from").asOpt[User],

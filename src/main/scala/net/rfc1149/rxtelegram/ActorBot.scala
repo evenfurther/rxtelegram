@@ -61,17 +61,6 @@ abstract class ActorBot(val token: String, val config: Config = ConfigFactory.lo
       stash()
   }
 
-  private def tryHandle[T](kind: String, objOpt: Option[T], handle: T ⇒ Unit) = {
-    objOpt.foreach { obj ⇒
-      try {
-        handle(obj)
-      } catch {
-        case t: Throwable ⇒
-          log.error(t, "exception when handling {} {}", kind, obj)
-      }
-    }
-  }
-
   private[this] var ongoingSend: Boolean = false
   private[this] val sendQueue = new scala.collection.mutable.Queue[(() ⇒ Future[_], ActorRef)]
 
@@ -93,9 +82,9 @@ abstract class ActorBot(val token: String, val config: Config = ConfigFactory.lo
       sender ! me
 
     case update: Update ⇒
-      tryHandle("message", update.message, handleMessage)
-      tryHandle("inline query", update.inline_query, handleInlineQuery)
-      tryHandle("chosen inline result", update.chosen_inline_result, handleChosenInlineResult)
+      update.message foreach handleMessage
+      update.inline_query foreach handleInlineQuery
+      update.chosen_inline_result foreach handleChosenInlineResult
 
     case data: ActionAnswerInlineQuery ⇒
       attemptSend(() ⇒ send(data), sender())
@@ -117,12 +106,7 @@ abstract class ActorBot(val token: String, val config: Config = ConfigFactory.lo
       getFile(file_id).pipeTo(sender())
 
     case other ⇒
-      try {
-        handleOther(other)
-      } catch {
-        case t: Throwable ⇒
-          log.error(t, "error when handling {}", other)
-      }
+      handleOther(other)
   }
 
 }

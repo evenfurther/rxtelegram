@@ -39,9 +39,6 @@ abstract class DispatcherBot(token: String) extends ActorBot(token) with ChatDis
 }
 
 object DispatcherBot {
-
-  case class RemoveChat(chat_id: Long)
-
   case class CreateChat(chat_id: Long, props: Props, name: String)
-
+  case class RemoveChat(chat_id: Long)
 }

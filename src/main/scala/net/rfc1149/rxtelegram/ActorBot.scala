@@ -1,11 +1,10 @@
 package net.rfc1149.rxtelegram
 
-import akka.NotUsed
 import akka.actor.Status.Failure
 import akka.actor.{Actor, ActorLogging, ActorRef, ActorSystem, Stash}
 import akka.pattern.pipe
 import akka.stream.scaladsl.Sink
-import akka.stream.{ActorMaterializer, Materializer, ThrottleMode}
+import akka.stream.{ActorMaterializer, Materializer}
 import com.typesafe.config.{Config, ConfigFactory}
 import net.ceedubs.ficus.Ficus._
 import net.rfc1149.rxtelegram.Bot.{ActionAnswerInlineQuery, Command}
@@ -50,8 +49,7 @@ abstract class ActorBot(val token: String, val config: Config = ConfigFactory.lo
       setWebhook("")
       unstashAll()
       context.become(receiveIKnowMe)
-      // There is no backpressure here so we have to throttle manually
-      UpdateSource(token, config).throttle(10, 1.second, 20, ThrottleMode.Shaping).runWith(Sink.actorRef(self, NotUsed))
+      UpdateSource(token, config).runWith(Sink.actorRefWithAck(self, Init, Ack, Complete, Fail))
 
     case Failure(t) ⇒
       log.error(t, "error when getting information about myself, will retry in {}", httpErrorRetryDelay)
@@ -81,7 +79,19 @@ abstract class ActorBot(val token: String, val config: Config = ConfigFactory.lo
     case GetMe ⇒
       sender ! me
 
+    case Init ⇒
+      sender ! Ack
+
+    case Complete ⇒
+      log.debug("end of updates stream from Telegram")
+      context.stop(self)
+
+    case Fail(t) ⇒
+      log.error(t, "error when fetching updates stream from Telegram")
+      throw t
+
     case update: Update ⇒
+      sender ! Ack
       update.message foreach handleMessage
       update.inline_query foreach handleInlineQuery
       update.chosen_inline_result foreach handleChosenInlineResult
@@ -112,6 +122,12 @@ abstract class ActorBot(val token: String, val config: Config = ConfigFactory.lo
 }
 
 object ActorBot {
+
+  // ActorRefWithAck protocol
+  case object Init
+  case object Ack
+  case object Complete
+  case class Fail(t: Throwable)
 
   case object GetMe
   private case object GetMyself

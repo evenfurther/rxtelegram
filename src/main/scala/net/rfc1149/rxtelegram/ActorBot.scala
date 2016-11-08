@@ -62,14 +62,26 @@ abstract class ActorBot(val token: String, val config: Config = ConfigFactory.lo
   private[this] var ongoingSend: Boolean = false
   private[this] val sendQueue = new scala.collection.mutable.Queue[(() ⇒ Future[_], ActorRef)]
 
-  private[this] def computeAndSendResult(f: Future[_], r: ActorRef) = {
+  /**
+   * Perform one send operation and send a `Done` message to `self`.
+   *
+   * @param f the send operation
+   * @param r the actor to send the result of the operation to
+   */
+  private[this] def computeAndSendResult(f: Future[_], r: ActorRef): Unit = {
     assert(!ongoingSend)
     ongoingSend = true
-    f.pipeTo(r)
+    pipe(f).to(r)
     f.onComplete(_ ⇒ self ! Done)
   }
 
-  private[this] def attemptSend(f: () ⇒ Future[_], r: ActorRef) =
+  /**
+   * Serialize send operations so that they happen in order.
+   *
+   * @param f the send operation
+   * @param r the actor to send the result of the operation to
+   */
+  private[this] def attemptSend(f: () ⇒ Future[_], r: ActorRef): Unit =
     if (ongoingSend)
       sendQueue += ((f, r))
     else
@@ -103,6 +115,7 @@ abstract class ActorBot(val token: String, val config: Config = ConfigFactory.lo
       attemptSend(() ⇒ sendToMessage(data), sender())
 
     case Done ⇒
+      // End of a serialized operation. Start next one if needed.
       ongoingSend = false
       sendQueue.dequeueFirst(_ ⇒ true).foreach { case (f, r) ⇒ computeAndSendResult(f(), r) }
 

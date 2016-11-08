@@ -9,13 +9,12 @@ import com.typesafe.config.{Config, ConfigFactory}
 import net.ceedubs.ficus.Ficus._
 import net.rfc1149.rxtelegram.Bot.{ActionAnswerInlineQuery, Command}
 import net.rfc1149.rxtelegram.model._
-import net.rfc1149.rxtelegram.model.inlinequeries.InlineQuery
 import net.rfc1149.rxtelegram.model.media.Media
 
 import scala.concurrent.duration._
 import scala.concurrent.{ExecutionContext, Future}
 
-abstract class ActorBot(val token: String, val config: Config = ConfigFactory.load()) extends Actor with ActorLogging with Stash with Bot {
+abstract class ActorBot(val token: String, val config: Config = ConfigFactory.load()) extends Actor with ActorLogging with Stash with Bot with UpdateHandler {
 
   import ActorBot._
 
@@ -26,12 +25,6 @@ abstract class ActorBot(val token: String, val config: Config = ConfigFactory.lo
   private[this] val httpErrorRetryDelay = config.as[FiniteDuration]("rxtelegram.http-error-retry-delay")
 
   protected[this] var me: User = _
-
-  protected[this] def handleMessage(message: Message): Unit
-
-  protected[this] def handleInlineQuery(inlineQuery: InlineQuery): Unit = sys.error("unhandled inline query")
-
-  protected[this] def handleChosenInlineResult(chosenInlineResult: ChosenInlineResult): Unit = sys.error("unhandled chosen inline result")
 
   protected[this] def handleOther(other: Any): Unit = {
     log.info("received unknown content: {}", other)
@@ -104,9 +97,7 @@ abstract class ActorBot(val token: String, val config: Config = ConfigFactory.lo
 
     case update: Update ⇒
       sender ! Ack
-      update.message foreach handleMessage
-      update.inline_query foreach handleInlineQuery
-      update.chosen_inline_result foreach handleChosenInlineResult
+      handleUpdate(update)
 
     case data: ActionAnswerInlineQuery ⇒
       attemptSend(() ⇒ send(data), sender())

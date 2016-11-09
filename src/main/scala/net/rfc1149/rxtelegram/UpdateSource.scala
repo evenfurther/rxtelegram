@@ -12,7 +12,7 @@ class UpdateSource(val token: String, val options: Options, val queue: SourceQue
   import UpdateSource._
 
   implicit val actorSystem = context.system
-  implicit val fm = ActorMaterializer()(context)
+  implicit val fm = ActorMaterializer.create(context)
   implicit val ec = context.dispatcher
 
   override def preStart = {

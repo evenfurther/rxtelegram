@@ -3,7 +3,7 @@ package net.rfc1149.rxtelegram
 import akka.actor.{ActorContext, ActorRef, Props}
 import net.rfc1149.rxtelegram.model.{Chat, Message}
 
-abstract class DispatcherBot(token: String) extends ActorBot(token) with ChatDispatcher {
+abstract class DispatcherBot(token: String, options: Options) extends ActorBot(token, options) with ChatDispatcher {
 
   import DispatcherBot._
 

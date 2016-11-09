@@ -11,9 +11,9 @@ import net.rfc1149.rxtelegram.model.media.Media
 
 import scala.concurrent.{ExecutionContext, Future}
 
-abstract class ActorBot(val token: String, val options: Options) extends Actor with ActorLogging with Stash with Bot with UpdateHandler {
+abstract class BotActor(val token: String, val options: Options) extends Actor with ActorLogging with Stash with Bot with UpdateHandler {
 
-  import ActorBot._
+  import BotActor._
 
   implicit val actorSystem: ActorSystem = context.system
   implicit val ec: ExecutionContext = context.dispatcher
@@ -120,7 +120,7 @@ abstract class ActorBot(val token: String, val options: Options) extends Actor w
 
 }
 
-object ActorBot {
+object BotActor {
 
   // ActorRefWithAck protocol
   case object Init

@@ -23,8 +23,8 @@ abstract class DispatcherBotActor(token: String, options: Options) extends BotAc
   }
 
   override def handleOther(other: Any): Unit = other match {
-    case CreateChat(chat_id: Long, props: Props, name: String) ⇒
-      addChat(chat_id, context.actorOf(props, name))
+    case CreateChat(chat_id, propsCreator, name) ⇒
+      addChat(chat_id, context.actorOf(propsCreator(chat_id), name))
     case RemoveChat(id) ⇒
       removeChat(id)
     case _ ⇒
@@ -34,6 +34,7 @@ abstract class DispatcherBotActor(token: String, options: Options) extends BotAc
 }
 
 object DispatcherBotActor {
-  case class CreateChat(chat_id: Long, props: Props, name: String)
+  case class CreateChat(chat_id: Long, propsCreator: Long => Props, name: String)
   case class RemoveChat(chat_id: Long)
 }
+

@@ -13,8 +13,8 @@ lazy val rxTelegram = project
       "Sonatype OSS Releases"  at "http://oss.sonatype.org/content/repositories/releases/",
       Resolver.jcenterRepo),
     libraryDependencies ++= Seq(
-      "com.typesafe.akka" %% "akka-actor" % "2.5.19",
-      "com.typesafe.akka" %% "akka-stream" % "2.5.19",
+      "com.typesafe.akka" %% "akka-actor" % "2.5.21",
+      "com.typesafe.akka" %% "akka-stream" % "2.5.21",
       "com.typesafe.akka" %% "akka-http-core" % "10.1.5",
       "de.heikoseeberger" %% "akka-http-play-json" % "1.22.0",
       "com.iheart" %% "ficus" % "1.4.2",

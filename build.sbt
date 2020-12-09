@@ -14,7 +14,7 @@ lazy val rxTelegram = project
       "com.typesafe.akka" %% "akka-stream" % "2.6.0",
       "com.typesafe.akka" %% "akka-http-core" % "10.1.10",
       "de.heikoseeberger" %% "akka-http-play-json" % "1.29.1",
-      "com.iheart" %% "ficus" % "1.4.7",
+      "com.iheart" %% "ficus" % "1.5.0",
       "commons-io" % "commons-io" % "2.6",
       "org.specs2" %% "specs2-core" % "4.6.0" % "test"
     ),

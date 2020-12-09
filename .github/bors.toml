@@ -1,4 +1,4 @@
 status = [
-  "continuous-integration/travis-ci/push",
+  "Test suite",
 ]
 delete_merged_branches = true

@@ -1,10 +1,9 @@
 name: Validation process
-on: [push]
-  #on:
-  #  push:
-  #    branches:
-  #      - staging
-  #      - trying
+on:
+  push:
+    branches:
+      - staging
+      - trying
 jobs:
   test:
     name: Test suite

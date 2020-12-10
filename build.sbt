@@ -12,7 +12,7 @@ lazy val rxTelegram = project
     libraryDependencies ++= Seq(
       "com.typesafe.akka" %% "akka-actor" % "2.6.10",
       "com.typesafe.akka" %% "akka-stream" % "2.6.10",
-      "com.typesafe.akka" %% "akka-http-core" % "10.1.13",
+      "com.typesafe.akka" %% "akka-http-core" % "10.2.2",
       "de.heikoseeberger" %% "akka-http-play-json" % "1.35.2",
       "com.iheart" %% "ficus" % "1.5.0",
       "commons-io" % "commons-io" % "2.8.0",

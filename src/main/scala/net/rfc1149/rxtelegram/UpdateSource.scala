@@ -6,6 +6,7 @@ import akka.stream.scaladsl.{RestartSource, Source}
 import net.rfc1149.rxtelegram.model._
 
 import scala.concurrent.Future
+import akka.stream.RestartSettings
 
 object UpdateSource {
 
@@ -22,10 +23,12 @@ object UpdateSource {
       .mapAsync(parallelism = 1)(identity)
       .mapConcat(identity)
 
-  def apply(token: String, options: Options)(implicit system: ActorSystem): Source[Update, NotUsed] =
-    RestartSource.withBackoff(minBackoff   = options.httpMinErrorRetryDelay, maxBackoff = options.httpMaxErrorRetryDelay, randomFactor = 0.2) {
+  def apply(token: String, options: Options)(implicit system: ActorSystem): Source[Update, NotUsed] = {
+    val restartSettings = RestartSettings(options.httpMinErrorRetryDelay, options.httpMaxErrorRetryDelay, 0.2)
+    RestartSource.withBackoff(restartSettings) {
       () => source(token, options)
     }
+  }
 
 }
 

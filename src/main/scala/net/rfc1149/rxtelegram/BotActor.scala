@@ -76,10 +76,10 @@ abstract class BotActor(val token: String, val options: Options) extends Actor w
 
   def receiveIKnowMe: Receive = {
     case GetMe =>
-      sender ! me
+      sender() ! me
 
     case Init =>
-      sender ! Ack
+      sender() ! Ack
 
     case Complete =>
       log.debug("end of updates stream from Telegram")
@@ -90,7 +90,7 @@ abstract class BotActor(val token: String, val options: Options) extends Actor w
       throw t
 
     case update: Update =>
-      sender ! Ack
+      sender() ! Ack
       handleUpdate(update)
 
     case data: ActionAnswerInlineQuery =>

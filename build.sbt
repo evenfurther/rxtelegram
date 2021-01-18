@@ -12,11 +12,11 @@ lazy val rxTelegram = project
     libraryDependencies ++= Seq(
       "com.typesafe.akka" %% "akka-actor" % "2.6.11",
       "com.typesafe.akka" %% "akka-stream" % "2.6.11",
-      "com.typesafe.akka" %% "akka-http-core" % "10.2.2",
+      "com.typesafe.akka" %% "akka-http-core" % "10.2.3",
       "de.heikoseeberger" %% "akka-http-play-json" % "1.35.3",
       "com.iheart" %% "ficus" % "1.5.0",
       "commons-io" % "commons-io" % "2.8.0",
-      "org.specs2" %% "specs2-core" % "4.10.5" % "test"
+      "org.specs2" %% "specs2-core" % "4.10.6" % "test"
     ),
     fork in Test := true,
     scalariformAutoformat := true,

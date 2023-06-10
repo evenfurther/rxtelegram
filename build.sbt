@@ -7,7 +7,7 @@ lazy val rxTelegram = project
     name := "rxtelegram",
     organization := "net.rfc1149",
     version := "0.0.2-SNAPSHOT",
-    scalaVersion := "2.13.10",
+    scalaVersion := "2.13.11",
     scalacOptions ++= Seq("-unchecked", "-deprecation", "-feature"),
     libraryDependencies ++= Seq(
       "com.typesafe.akka" %% "akka-actor" % "2.6.20",

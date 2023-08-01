@@ -7,7 +7,7 @@ lazy val rxTelegram = project
     name := "rxtelegram",
     organization := "net.rfc1149",
     version := "0.0.2-SNAPSHOT",
-    scalaVersion := "2.13.10",
+    scalaVersion := "2.13.11",
     scalacOptions ++= Seq("-unchecked", "-deprecation", "-feature"),
     libraryDependencies ++= Seq(
       "com.typesafe.akka" %% "akka-actor" % "2.6.20",
@@ -15,7 +15,7 @@ lazy val rxTelegram = project
       "com.typesafe.akka" %% "akka-http-core" % "10.2.10",
       "de.heikoseeberger" %% "akka-http-play-json" % "1.39.2",
       "com.iheart" %% "ficus" % "1.5.2",
-      "commons-io" % "commons-io" % "2.11.0",
+      "commons-io" % "commons-io" % "2.13.0",
       "org.specs2" %% "specs2-core" % "4.20.0" % "test"
     ),
     Test/fork := true,

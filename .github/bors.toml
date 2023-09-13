@@ -1,4 +1,0 @@
-status = [
-  "Test suite",
-]
-delete_merged_branches = true

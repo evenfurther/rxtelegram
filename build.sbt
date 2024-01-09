@@ -16,7 +16,7 @@ lazy val rxTelegram = project
       "de.heikoseeberger" %% "akka-http-play-json" % "1.39.2",
       "com.iheart" %% "ficus" % "1.5.2",
       "commons-io" % "commons-io" % "2.15.1",
-      "org.specs2" %% "specs2-core" % "4.20.3" % "test"
+      "org.specs2" %% "specs2-core" % "4.20.4" % "test"
     ),
     Test/fork := true,
     scalariformAutoformat := true,
